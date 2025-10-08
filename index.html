@@ -5,41 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>How Australians got to work?</title>
   <style>
-    :root { --maxw: 980px; }
+    :root { --maxw: 1100px; }
     html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      color: #0f172a; /* slate-900 */
-      background: #f8fafc; /* slate-50 */
-      line-height: 1.5;
-    }
-    header {
-      display: grid;
-      place-items: center;
-      padding: 7rem 1rem 3rem;
-      text-align: center;
-      background: radial-gradient(1200px 600px at 50% -200px, #e2e8f0 0%, #f8fafc 60%);
-      border-bottom: 1px solid #e2e8f0;
-    }
-    h1 {
-      margin: 0;
-      font-size: clamp(2rem, 4vw + 1rem, 3.25rem);
-      letter-spacing: -0.02em;
-      font-weight: 800;
-    }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; line-height: 1.5; }
+    header { display: grid; place-items: center; padding: 7rem 1rem 2rem; text-align: center; background: radial-gradient(1200px 600px at 50% -200px, #e2e8f0 0%, #f8fafc 60%); border-bottom: 1px solid #e2e8f0; }
+    h1 { margin: 0; font-size: clamp(2rem, 4vw + 1rem, 3.25rem); letter-spacing: -0.02em; font-weight: 800; }
     main { max-width: var(--maxw); margin: 0 auto; padding: 1rem; }
     .byline { margin-top: .5rem; color: #475569; font-size: .95rem; }
-    .chart-section { margin: 2.5rem 0; }
-    /* Responsive two‑column layout for chart rows */
+    .chart-section { margin: 2rem 0; }
+    /* Two‑column responsive layout */
     .grid-2 { display: block; }
-    @media (min-width: 960px){
-      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-    }
-    .panel {
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
-      box-shadow: 0 1px 2px rgba(2,6,23,0.04);
-    }
+    @media (min-width: 960px){ .grid-2 { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
+    .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgba(2,6,23,0.04); }
+    footer { margin: 3rem 0 2rem; color: #64748b; font-size: .9rem; }
   </style>
   <!-- Vega libraries -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
@@ -53,61 +31,72 @@
   </header>
 
   <main>
-    <!-- Hero intro -->
     <section class="chart-section" style="text-align:center; max-width:720px; margin-inline:auto;">
       <p>Exploring commuting shifts between the 2016 and 2021 Censuses with a focus on Greater Melbourne.</p>
     </section>
 
-    <!-- Map container -->
+    <!-- Map + side panel -->
     <section id="map" class="chart-section grid-2">
-      <!-- Left: Map -->
+      <!-- Left: Choropleth map -->
       <div class="panel">
-        <h2 style="margin:0 0 .5rem;">Greater Melbourne — SA3 Outline</h2>
-        <div id="map-vis" aria-label="Greater Melbourne SA3 map"></div>
-        <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Tip: this is the base map. We'll join your CSV next to create a choropleth.</p>
+        <h2 style="margin:0 0 .5rem;">Greater Melbourne — SA3 Change in Public Transport Share (2016→2021)</h2>
+        <div id="map-vis" aria-label="Greater Melbourne SA3 choropleth" style="min-height:560px"></div>
+        <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Grey areas indicate missing data. Ensure your CSV has rows for all SA3s you want coloured.</p>
       </div>
-      <!-- Right: Placeholder for a second chart -->
+      <!-- Right: Placeholder (we'll add the wide chart next) -->
       <div class="panel" id="right-slot">
-        <h2 style="margin:0 0 .5rem;">(Placeholder) Add second chart here</h2>
-        <div id="chart-slot-1" style="min-height: 200px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">Ready for your next viz</div>
+        <h2 style="margin:0 0 .5rem;">(Placeholder) 2016 vs 2021 by Mode</h2>
+        <div id="chart-slot-1" style="min-height: 240px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">This panel will show the selected SA3’s modes (2016 vs 2021).</div>
       </div>
     </section>
 
-    <!-- Placeholders for the rest of your visuals -->
+    <!-- Additional sections ready for later -->
     <section id="slope" class="chart-section"></section>
     <section id="drive" class="chart-section"></section>
     <section id="wfh" class="chart-section"></section>
     <section id="bike" class="chart-section"></section>
 
-    <footer style="margin:3rem 0 2rem; color:#64748b; font-size:.9rem;">
+    <footer>
       Data: ABS 2016 & 2021 Census; City of Sydney Bicycle Counts. Author: Your Name. Date: Oct 2025.
     </footer>
   </main>
+
   <script>
-    // Minimal outline map spec (TopoJSON → geoshape)
+    // ====== CONFIGURE YOUR FILE PATHS HERE ======
+    // If your CSVs are inside a folder (e.g., ./data/), just prepend "data/" below.
+    const TOPO_URL = "SA3_2021_AUST_GDA2020.json";               // TopoJSON file in your repo
+    const SA3_CSV  = "proportion_transportation_map.csv";         // Your current CSV name
+
+    // Choropleth spec — Δ PT share (pp) 2016→2021
     const mapSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: 900,
-      height: 580,
+      height: 560,
       projection: { type: "mercator" },
       data: {
-        url: "SA3_2021_AUST_GDA2020.json",
+        url: TOPO_URL,
         format: { type: "topojson", feature: "SA3_2021_AUST_GDA2020" }
       },
       transform: [{
         lookup: "properties.SA3_CODE21",
         from: {
-          data: { url: "proportion_transportation_map_FINAL.csv" , key: "SA3_CODE21", fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"] },
+          data: { url: SA3_CSV },
           key: "SA3_CODE21",
           fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"]
         }
       }],
-      mark: { type: "geoshape", stroke: "#ffffff", strokeWidth: 0.5 },
+      mark: { type: "geoshape", fill: "#e2e8f0", stroke: "#94a3b8", strokeWidth: 0.6 },
       encoding: {
         color: {
-          field: "delta_pt_pp", type: "quantitative",
-          title: "Δ Public transport (pp, 2016→2021)",
-          scale: { scheme: "blueorange" }
+          // Use a condition so NaN (missing) shows as grey fill
+          condition: {
+            test: "isValid(datum.delta_pt_pp) && isFinite(+datum.delta_pt_pp)",
+            field: "delta_pt_pp",
+            type: "quantitative",
+            title: "Δ Public transport (pp, 2016→2021)",
+            scale: { scheme: "blueorange" }
+          },
+          value: "#e2e8f0" // fallback colour for missing values
         },
         tooltip: [
           { field: "properties.SA3_NAME21", title: "SA3" },
@@ -118,7 +107,7 @@
       }
     };
 
-    vegaEmbed('#map-vis', mapSpec, {actions: false});
+    vegaEmbed('#map-vis', mapSpec, { actions: false });
   </script>
 </body>
 </html>
