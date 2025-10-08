@@ -43,8 +43,8 @@
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
-            <button class="btn active" data-year="2016" id="y2016">2016</button>
-            <button class="btn" data-year="2021" id="y2021">2021</button>
+            <button class="btn" data-year="2016" id="y2016">2016</button>
+            <button class="btn active" data-year="2021" id="y2021">2021</button>
           </div>
           <div class="muted">Dot size = share (%). Grey dots = no value for that Area+mode+year.</div>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
@@ -63,10 +63,10 @@
 
   <script>
   (async function () {
-    // === File names (same folder as index.html) ===
+    // ===== File names (same folder as index.html) =====
     const topoUrl = "SA3_2021_AUST_GDA2020.json";                        // background outline (SA3)
-    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // may or may not include lon/lat
-    const centUrl = "lga_centroids.csv";                                   // fallback for lon/lat
+    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";// data (may or may not include lon/lat)
+    const centUrl = "lga_centroids.csv";                                  // fallback for lon/lat
 
     // Helpers: normalise names/modes & parse numbers
     const MODE_ALIASES = new Map([
@@ -93,9 +93,9 @@
       return Number.isFinite(v) ? v : NaN;
     }
 
+    // SVG + layers
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
-
     const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
     const gBase = svg.append("g");
     const gDots = svg.append("g");
@@ -108,7 +108,7 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    // --- Background outline (SA3) ---
+    // Background outline (SA3)
     const geo = topojson.feature(topology, topology.objects.SA3_2021_AUST_GDA2020);
     const melb = { type:"FeatureCollection", features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne") };
     const projection = d3.geoMercator().fitSize([width,height], melb);
@@ -121,16 +121,15 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // --- Detect columns in data file ---
-    const hasLon = "lon" in rawData[0];
-    const hasLat = "lat" in rawData[0];
+    // Detect lon/lat presence in the data file
+    const hasLon = rawData.length && ("lon" in rawData[0]);
+    const hasLat = rawData.length && ("lat" in rawData[0]);
 
-    // Build a tidy table with Area, lon, lat, mode, share_2016, share_2021, delta_pp
+    // Build tidy table with: Area, lon, lat, mode, share_2016, share_2021, delta_pp
     let data = rawData.map(d => ({
       Area: d.Area,
       area_norm: normName(d.Area),
       mode: normMode(d.mode ?? d.Mode ?? d.data_label ?? d["Data label"]),
-      // accept either share_2016/share_2021 or 2016%/2021%
       share_2016: toNum(d.share_2016 ?? d["2016%"] ?? d["2016 %"]),
       share_2021: toNum(d.share_2021 ?? d["2021%"] ?? d["2021 %"]),
       delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
@@ -138,11 +137,11 @@
       lat: hasLat ? +d.lat : NaN
     }));
 
-    // If lon/lat missing in the data file, join from lga_centroids.csv by normalised Area
+    // If lon/lat missing, join from centroids by normalised Area
     if (!hasLon || !hasLat) {
-      const byArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
+      const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
       data.forEach(d => {
-        const c = byArea.get(d.area_norm);
+        const c = centByArea.get(d.area_norm);
         if (c) { d.lon = c.lon; d.lat = c.lat; }
       });
       document.getElementById("joinNote").style.display = "block";
@@ -153,6 +152,7 @@
     const modeSel = document.getElementById("modeSel");
     modes.forEach(m => modeSel.appendChild(new Option(m, m)));
 
+    // Controls
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
     function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y); }
@@ -160,51 +160,61 @@
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
 
+    // ---------- FORCE-COLLISION RENDER (no more messy overlap) ----------
     function render(mode, year){
+      // 1) build data for the selected mode/year
       const rows = data.filter(d => d.mode === mode);
 
-      const points = rows.map(d => {
+      const pts = rows.map(d => {
         const value = year === 2016 ? d.share_2016 : d.share_2021;
         const hasValue = Number.isFinite(value);
         const hasCoord = Number.isFinite(d.lon) && Number.isFinite(d.lat);
         const p = hasCoord ? projection([d.lon, d.lat]) : null;
-        return { Area: d.Area, x: p? p[0]:undefined, y: p? p[1]:undefined, value, hasValue, mode, year };
-      }).filter(d => d.x !== undefined);
+        return { Area: d.Area, x0: p? p[0]:undefined, y0: p? p[1]:undefined, value, hasValue, mode, year };
+      }).filter(d => d.x0 !== undefined);
 
-      const vMax = d3.max(points.filter(d => d.hasValue), d => d.value) || 10;
-      const r = d3.scaleSqrt().domain([0, vMax]).range([1, 10]);
+      // 2) small radii
+      const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
+      const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]); // <= smaller dots
 
-      const circles = gDots.selectAll("circle").data(points, d => d.Area + "__" + mode);
+      // 3) tiny force layout to separate circles near their anchors
+      const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
+      const sim = d3.forceSimulation(nodes)
+        .force("x", d3.forceX(d => d.x0).strength(0.20))
+        .force("y", d3.forceY(d => d.y0).strength(0.20))
+        .force("collide", d3.forceCollide(d => r(d.hasValue ? d.value : 0.1) + 1.5))
+        .stop();
+      for (let i = 0; i < 120; i++) sim.tick();
+
+      // 4) draw
+      const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
-          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0)
+          .attr("cx", d => d.x0).attr("cy", d => d.y0).attr("r", 0)
           .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
-          .attr("fill-opacity", d => d.hasValue ? 0.78 : 0.9)
+          .attr("fill-opacity", d => d.hasValue ? 0.75 : 0.9)
           .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
           .attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%`
-                                   : `No data for ${d.mode} ${d.year}`;
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%` : `No data for ${d.mode} ${d.year}`;
             tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
           .on("mouseleave", () => tip.style("opacity",0))
-          .transition().duration(450)
-          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
-        update => update.transition().duration(350)
-          .attr("cx", d => d.x).attr("cy", d => d.y)
+          .transition().duration(400)
+          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
+        update => update.transition().duration(300)
+          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1))
           .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
-          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
-          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
-        exit => exit.transition().duration(250).attr("r",0).remove()
+          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8"),
+        exit => exit.transition().duration(200).attr("r",0).remove()
       );
 
-      // Dev log to help you diagnose
-      const missingVals = points.filter(d => !d.hasValue).length;
-      console.log(`Mode=${mode} Year=${year}: ${points.length - missingVals} dots with data; ${missingVals} without.`);
+      const missing = nodes.filter(d => !d.hasValue).length;
+      console.log(`Mode=${mode} Year=${year}: ${nodes.length - missing} dots with data; ${missing} grey.`);
     }
 
-    // initial
+    // initial render
     setYear(2021);
   })();
   </script>
