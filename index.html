@@ -64,11 +64,11 @@
   <script>
   (async function () {
     // ===== File names (same folder as index.html) =====
-    const topoUrl = "SA3_2021_AUST_GDA2020.json";                        // background outline (SA3)
-    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";// data (may or may not include lon/lat)
-    const centUrl = "lga_centroids.csv";                                  // fallback for lon/lat
+    const topoUrl = "SA3_2021_AUST_GDA2020.json";
+    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";
+    const centUrl = "lga_centroids.csv";
 
-    // Helpers: normalise names/modes & parse numbers
+    // Helpers
     const MODE_ALIASES = new Map([
       ["taxi/ride-share","Taxi/Rideshare"],["taxi/ride share","Taxi/Rideshare"],
       ["car - as driver","Car driver"],["car- as driver","Car driver"],
@@ -77,7 +77,7 @@
     function normName(s){
       return String(s||"")
         .toLowerCase()
-        .replace(/\s*\([^)]*\)\s*/g," ") // drop (P), etc.
+        .replace(/\s*\([^)]*\)\s*/g," ") // drop (P) etc. for joining, not for display
         .replace(/^city of\s+/,"")
         .replace(/[–—-]+/g," ")
         .replace(/\s+/g," ").trim();
@@ -92,8 +92,9 @@
       const v = +s;
       return Number.isFinite(v) ? v : NaN;
     }
+    const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    // SVG + layers
+    // SVG
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
     const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
@@ -102,13 +103,17 @@
     const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     // Load files
-    const [topology, rawData, centroids] = await Promise.all([
+    const [topology, rawDataAll, centroidsAll] = await Promise.all([
       d3.json(topoUrl),
       d3.csv(dataUrl),
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    // Background outline (SA3)
+    // *** NEW: drop any Area that ends with "(N)" in BOTH datasets ***
+    const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
+    const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
+
+    // Background outline
     const geo = topojson.feature(topology, topology.objects.SA3_2021_AUST_GDA2020);
     const melb = { type:"FeatureCollection", features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne") };
     const projection = d3.geoMercator().fitSize([width,height], melb);
@@ -121,11 +126,11 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // Detect lon/lat presence in the data file
+    // Detect lon/lat presence
     const hasLon = rawData.length && ("lon" in rawData[0]);
     const hasLat = rawData.length && ("lat" in rawData[0]);
 
-    // Build tidy table with: Area, lon, lat, mode, share_2016, share_2021, delta_pp
+    // Tidy table
     let data = rawData.map(d => ({
       Area: d.Area,
       area_norm: normName(d.Area),
@@ -137,7 +142,7 @@
       lat: hasLat ? +d.lat : NaN
     }));
 
-    // If lon/lat missing, join from centroids by normalised Area
+    // Join lon/lat if missing
     if (!hasLon || !hasLat) {
       const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
       data.forEach(d => {
@@ -147,7 +152,7 @@
       document.getElementById("joinNote").style.display = "block";
     }
 
-    // Build mode list from data
+    // Mode list
     const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
     modes.forEach(m => modeSel.appendChild(new Option(m, m)));
@@ -160,9 +165,8 @@
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
 
-    // ---------- FORCE-COLLISION RENDER (no more messy overlap) ----------
+    // Render with tiny force-collision (declutters CBD)
     function render(mode, year){
-      // 1) build data for the selected mode/year
       const rows = data.filter(d => d.mode === mode);
 
       const pts = rows.map(d => {
@@ -173,11 +177,9 @@
         return { Area: d.Area, x0: p? p[0]:undefined, y0: p? p[1]:undefined, value, hasValue, mode, year };
       }).filter(d => d.x0 !== undefined);
 
-      // 2) small radii
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
-      const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]); // <= smaller dots
+      const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
 
-      // 3) tiny force layout to separate circles near their anchors
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
@@ -186,7 +188,6 @@
         .stop();
       for (let i = 0; i < 120; i++) sim.tick();
 
-      // 4) draw
       const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
@@ -214,7 +215,6 @@
       console.log(`Mode=${mode} Year=${year}: ${nodes.length - missing} dots with data; ${missing} grey.`);
     }
 
-    // initial render
     setYear(2021);
   })();
   </script>
