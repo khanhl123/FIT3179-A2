@@ -5,24 +5,22 @@
   <title>How Australians got to work?</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root{
-      --bg:#f7f9fc; --text:#0f172a; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
-      --accent:#2563eb;
-    }
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    body{margin:0;background:#f7f9fc;color:#0f172a;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
     header{padding:28px 20px;text-align:center;}
     h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
-    .subtitle{margin-top:6px;color:var(--muted);font-size:14px}
+    .subtitle{margin-top:6px;color:#64748b;font-size:14px}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
     .grid{display:grid;grid-template-columns:1fr 320px;gap:20px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
-    .card h2{font-size:20px;margin:0 0 14px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
-    #mapBox{height:560px}
-    .legend{font-size:12px;color:var(--muted)}
-    .placeholder{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;height:100%}
-    .pill{padding:6px 10px;border:1px dashed var(--border);border-radius:999px;color:var(--muted);background:#fafafa}
-    .warn{color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;margin-top:8px;display:none}
+    .card h2{font-size:20px;margin:0 0 12px}
+    #mapBox{height:620px}
+    .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
+    select,button{font:inherit}
+    .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+    .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
+    .muted{color:#64748b;font-size:12px}
+    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
     svg{display:block;width:100%;height:100%}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -31,27 +29,44 @@
 <body>
   <header>
     <h1>How Australians got to work?</h1>
-    <div class="subtitle">Exploring commuting shifts between the 2016 and 2021 Censuses with a focus on Greater Melbourne.</div>
+    <div class="subtitle">Dot map of mode share by LGA/suburb (2016 vs 2021) over a Greater Melbourne outline.</div>
   </header>
 
   <div class="wrap">
     <div class="grid">
-      <!-- MAP -->
       <section class="card">
         <div class="pad">
-          <h2>Greater Melbourne — SA3 Outline</h2>
-          <div class="legend" id="legendText">Tip: This is the base map. We’ll color it once the data join succeeds.</div>
-          <div class="warn" id="joinWarn">Heads up: your CSV doesn’t match SA3 names, so the choropleth wasn’t applied. The outline still renders.</div>
+          <h2>Greater Melbourne — Dot map by mode & year</h2>
+          <div class="controls">
+            <label>Mode:</label>
+            <select id="modeSel">
+              <option>Public transport</option>
+              <option>Train</option>
+              <option>Tram</option>
+              <option>Bus</option>
+              <option>Car driver</option>
+              <option>Car passenger</option>
+              <option>Walk</option>
+              <option>Bicycle</option>
+              <option>Taxi/Rideshare</option>
+              <option>Motorbike</option>
+              <option>Worked at home</option>
+              <option>Did not go to work</option>
+              <option>Other</option>
+            </select>
+            <span style="margin-left:8px">Year:</span>
+            <button class="btn active" data-year="2016" id="y2016">2016</button>
+            <button class="btn" data-year="2021" id="y2021">2021</button>
+          </div>
+          <div class="muted">Dot size = share (%). Hover for details. Ensure <code>Area</code> names match across both CSVs.</div>
         </div>
         <div id="mapBox"></div>
       </section>
 
-      <!-- RIGHT SIDEBAR -->
       <aside class="card">
-        <div class="pad placeholder">
-          <div style="font-weight:600;font-size:18px">（Placeholder）</div>
-          <div style="text-align:center;color:var(--muted)">Add second chart here</div>
-          <div class="pill">Ready for your next viz</div>
+        <div class="pad">
+          <h2>(Placeholder) 2016 vs 2021 by Mode</h2>
+          <p class="muted">We’ll hook this panel to dot clicks later.</p>
         </div>
       </aside>
     </div>
@@ -59,94 +74,95 @@
 
   <script>
   (async function () {
-    const mapFile = "SA3_2021_AUST_GDA2020.json";      // exact names from your repo
-    const csvFile = "proportion_transportation_map.csv";
+    // === File names (change if you move them into a /data folder) ===
+    const topoUrl = "SA3_2021_AUST_GDA2020.json";                      // background outline (SA3)
+    const centUrl = "lga_centroids.csv";                                // Area,lon,lat
+    const wideUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // Area,mode,share_2016,share_2021,delta_pp
 
+    // Setup SVG
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
+    const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
+    const gBase = svg.append("g");
+    const gDots = svg.append("g");
+    const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
-    const svg = d3.select("#mapBox").append("svg")
-      .attr("viewBox", [0, 0, width, height]);
-
-    const g = svg.append("g");
-
-    // Load files
-    const [topology, table] = await Promise.all([
-      d3.json(mapFile),
-      d3.csv(csvFile)
+    // Load data
+    const [topology, centroids, wide] = await Promise.all([
+      d3.json(topoUrl),
+      d3.csv(centUrl, d3.autoType),
+      d3.csv(wideUrl, d3.autoType)
     ]);
 
-    // Extract features and filter to Greater Melbourne (GCC_NAME21)
+    // Background outline (SA3)
     const geo = topojson.feature(topology, topology.objects.SA3_2021_AUST_GDA2020);
-    const melb = {
-      type: "FeatureCollection",
-      features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne")
-    };
-
-    // Projection fit to Greater Melbourne
-    const projection = d3.geoMercator().fitSize([width, height], melb);
+    const melb = { type:"FeatureCollection", features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne") };
+    const projection = d3.geoMercator().fitSize([width,height], melb);
     const path = d3.geoPath(projection);
 
-    // Draw base fill (light) so you always see the outline
-    g.append("g")
-      .selectAll("path")
-      .data(melb.features)
-      .join("path")
+    gBase.append("g")
+      .selectAll("path").data(melb.features).join("path")
       .attr("d", path)
-      .attr("fill", "#eef2ff")          // light base color
+      .attr("fill", "#eef2ff")
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // Try to build a value-by-SA3 map from your CSV
-    // Your CSV has LGA names like "City of Melbourne", but the map is SA3 (e.g., "Melbourne City").
-    // This will likely NOT match — we keep it defensive.
-    const valueBySa3Name = new Map();
-    // Example: if you later aggregate to SA3 and create columns:
-    // SA3_NAME21, pt_share_2016, pt_share_2021, delta_pt_pp
-    // then update the accessor below accordingly.
-    let hadAnyMatch = false;
+    // Build lookup of shares: (Area, mode) -> {share_2016, share_2021, delta_pp}
+    const key = (a,m) => `${a}__${m}`;
+    const shares = new Map(wide.map(d => [key(String(d.Area), String(d.mode)), d]));
 
-    table.forEach(row => {
-      // Attempt to use row.Area as SA3 name (will fail for LGA-based rows)
-      const key = (row.Area || "").trim();
-      // Choose a metric to color by if you have it; here we look for 'delta_pp'
-      const val = +row.delta_pp || NaN;
-      if (key && !Number.isNaN(val)) valueBySa3Name.set(key, val);
-    });
-
-    // Color scale (only used if a value matches)
-    const vals = Array.from(valueBySa3Name.values());
-    const color = d3.scaleDiverging()
-      .domain([d3.min(vals) || -10, 0, d3.max(vals) || 10])
-      .interpolator(d3.interpolateRdBu)
-      .unknown("#eef2ff");
-
-    // Try to recolor if there are matches
-    g.selectAll("path")
-      .attr("fill", d => {
-        const v = valueBySa3Name.get(d.properties.SA3_NAME21);
-        if (v !== undefined) { hadAnyMatch = true; return color(v); }
-        return "#eef2ff";
+    // Public transport subtotal if your wide file doesn't include it:
+    function ptSubtotal(area){
+      const ms = ["Train","Tram","Bus","Ferry"];
+      const r = {share_2016:0, share_2021:0, delta_pp:0, count:0};
+      ms.forEach(m => {
+        const row = shares.get(key(area, m));
+        if (row) { r.share_2016 += +row.share_2016 || 0; r.share_2021 += +row.share_2021 || 0; r.count++; }
       });
-
-    // Boundaries on top
-    g.append("path")
-      .datum(topojson.mesh(topology, topology.objects.SA3_2021_AUST_GDA2020, (a,b) =>
-        a.properties.GCC_NAME21 === "Greater Melbourne" &&
-        b.properties.GCC_NAME21 === "Greater Melbourne"))
-      .attr("d", path)
-      .attr("fill", "none")
-      .attr("stroke", "#475569")
-      .attr("stroke-width", 0.8);
-
-    // Show a gentle warning if join failed
-    if (!hadAnyMatch) {
-      document.getElementById("joinWarn").style.display = "block";
-      // Helpful console hint for you during development
-      console.warn("No SA3 name matches between CSV and map. Your CSV looks LGA-based (e.g., 'City of Melbourne') while the map is SA3 (e.g., 'Melbourne City').");
-    } else {
-      document.getElementById("legendText").textContent = "Δ Public transport (pp, 2016 → 2021)";
+      r.delta_pp = r.share_2021 - r.share_2016;
+      return r.count ? r : null;
     }
+
+    // Controls
+    const modeSel = document.getElementById("modeSel");
+    const y2016 = document.getElementById("y2016");
+    const y2021 = document.getElementById("y2021");
+    function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y); }
+    modeSel.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
+    y2016.addEventListener("click", () => setYear(2016));
+    y2021.addEventListener("click", () => setYear(2021));
+
+    function render(mode, year){
+      const data = centroids.map(c => {
+        const a = String(c.Area);
+        let row = shares.get(key(a, mode));
+        if (!row && mode === "Public transport") row = ptSubtotal(a);
+        const value = row ? (year === 2016 ? +row.share_2016 : +row.share_2021) : undefined;
+        const p = projection([+c.lon, +c.lat]);
+        return { Area:a, x:p? p[0]:undefined, y:p? p[1]:undefined, value, mode, year };
+      }).filter(d => d.x !== undefined && Number.isFinite(d.value));
+
+      const maxV = d3.max(data, d => d.value) || 10;
+      const r = d3.scaleSqrt().domain([0, maxV]).range([0, 18]);
+
+      const circles = gDots.selectAll("circle").data(data, d => d.Area);
+      circles.join(
+        enter => enter.append("circle")
+          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0)
+          .attr("fill", "#0284c7").attr("fill-opacity", 0.78).attr("stroke", "#0c4a6e").attr("stroke-width", 0.8)
+          .on("mousemove", (e,d) => {
+            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${d.mode} ${d.year}: ${d.value.toFixed(1)}%`)
+               .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
+          })
+          .on("mouseleave", () => tip.style("opacity",0))
+          .transition().duration(450).attr("r", d => r(d.value)),
+        update => update.transition().duration(350).attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.value)),
+        exit => exit.transition().duration(250).attr("r",0).remove()
+      );
+    }
+
+    // initial view
+    setYear(2016);
   })();
   </script>
 </body>
