@@ -20,7 +20,7 @@
     .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
     .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
     .muted{color:#64748b;font-size:12px}
-    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
     svg{display:block;width:100%;height:100%}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
   </style>
@@ -40,26 +40,12 @@
           <h2>Greater Melbourne — Dot map by mode & year</h2>
           <div class="controls">
             <label>Mode:</label>
-            <select id="modeSel">
-              <option>Public transport</option>
-              <option>Train</option>
-              <option>Tram</option>
-              <option>Bus</option>
-              <option>Car driver</option>
-              <option>Car passenger</option>
-              <option>Walk</option>
-              <option>Bicycle</option>
-              <option>Taxi/Rideshare</option>
-              <option>Motorbike</option>
-              <option>Worked at home</option>
-              <option>Did not go to work</option>
-              <option>Other</option>
-            </select>
+            <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
             <button class="btn active" data-year="2016" id="y2016">2016</button>
             <button class="btn" data-year="2021" id="y2021">2021</button>
           </div>
-          <div class="muted">Dot size = share (%). Grey dots mean no data for that Area+mode+year. Ensure <code>Area</code> names match across both CSVs.</div>
+          <div class="muted">Dot size = share (%). Grey dots mean no data for that Area+mode+year.</div>
         </div>
         <div id="mapBox"></div>
       </section>
@@ -75,10 +61,9 @@
 
   <script>
   (async function () {
-    // === File names (change if you move them into a /data folder) ===
-    const topoUrl = "SA3_2021_AUST_GDA2020.json";                      // background outline (SA3)
-    const centUrl = "lga_centroids.csv";                                // Area,lon,lat
-    const wideUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // Area,mode,share_2016,share_2021,delta_pp
+    // === File names (same folder as index.html) ===
+    const topoUrl = "SA3_2021_AUST_GDA2020.json";                        // background outline (SA3)
+    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // single tidy file: Area,lon,lat,mode,share_2016,share_2021,delta_pp
 
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
@@ -89,13 +74,12 @@
     const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     // Load data
-    const [topology, centroids, wide] = await Promise.all([
+    const [topology, all] = await Promise.all([
       d3.json(topoUrl),
-      d3.csv(centUrl, d3.autoType),
-      d3.csv(wideUrl, d3.autoType)
+      d3.csv(dataUrl, d3.autoType)
     ]);
 
-    // ---- Background outline (SA3) ----
+    // --- Background outline (SA3) ---
     const geo = topojson.feature(topology, topology.objects.SA3_2021_AUST_GDA2020);
     const melb = { type:"FeatureCollection", features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne") };
     const projection = d3.geoMercator().fitSize([width,height], melb);
@@ -108,24 +92,12 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // ---- Lookup of shares: (Area, mode) -> {share_2016, share_2021, delta_pp} ----
-    const key = (a,m) => `${String(a)}__${String(m)}`;
-    const shares = new Map(wide.map(d => [key(d.Area, d.mode), d]));
-
-    // Public transport subtotal if your wide file doesn't include it:
-    function ptSubtotal(area){
-      const modes = ["Train","Tram","Bus","Ferry"];
-      const r = {share_2016:0, share_2021:0, delta_pp:0, count:0};
-      modes.forEach(m => {
-        const row = shares.get(key(area, m));
-        if (row) { r.share_2016 += +row.share_2016 || 0; r.share_2021 += +row.share_2021 || 0; r.count++; }
-      });
-      r.delta_pp = r.share_2021 - r.share_2016;
-      return r.count ? r : null;
-    }
-
-    // ---- Controls wiring ----
+    // --- Build mode list dynamically from file ---
+    const modes = Array.from(new Set(all.map(d => d.mode))).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
+    modes.forEach(m => modeSel.appendChild(new Option(m, m)));
+
+    // --- Controls wiring ---
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
     function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y); }
@@ -133,21 +105,22 @@
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
 
-    // ---- Render dots (smaller radii; grey if missing value) ----
+    // --- Render dots (small radii; grey if missing) ---
     function render(mode, year){
-      const data = centroids.map(c => {
-        const a = String(c.Area);
-        let row = shares.get(key(a, mode));
-        if (!row && mode === "Public transport") row = ptSubtotal(a);
-        const value = row ? (year === 2016 ? +row.share_2016 : +row.share_2021) : NaN;
-        const p = projection([+c.lon, +c.lat]);
-        return { Area:a, x:p? p[0]:undefined, y:p? p[1]:undefined, value, hasValue:Number.isFinite(value), mode, year };
-      }).filter(d => d.x !== undefined); // keep all with coordinates
+      // Filter to the selected mode, keep one row per Area
+      const rows = all.filter(d => d.mode === mode);
+
+      const data = rows.map(d => {
+        const val = year === 2016 ? +d.share_2016 : +d.share_2021;
+        const hasValue = Number.isFinite(val);
+        const p = (Number.isFinite(+d.lon) && Number.isFinite(+d.lat)) ? projection([+d.lon, +d.lat]) : null;
+        return { Area: d.Area, x: p? p[0]:undefined, y: p? p[1]:undefined, value: val, hasValue, mode, year };
+      }).filter(d => d.x !== undefined); // keep rows with coordinates
 
       const vMax = d3.max(data.filter(d => d.hasValue), d => d.value) || 10;
-      const r = d3.scaleSqrt().domain([0, vMax]).range([1, 10]); // smaller dots
+      const r = d3.scaleSqrt().domain([0, vMax]).range([1, 10]);
 
-      const circles = gDots.selectAll("circle").data(data, d => d.Area);
+      const circles = gDots.selectAll("circle").data(data, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0)
