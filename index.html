@@ -14,15 +14,18 @@
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
     .card h2{font-size:20px;margin:0 0 12px}
-    #mapBox{height:620px}
+    #mapBox{height:620px; position:relative;}
     .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-    select,button{font:inherit}
+    select,button,label{font:inherit}
     .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
     .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
     .muted{color:#64748b;font-size:12px}
     .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
     .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
+    .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
     svg{display:block;width:100%;height:100%}
+    .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -45,9 +48,15 @@
             <span style="margin-left:8px">Year:</span>
             <button class="btn" data-year="2016" id="y2016">2016</button>
             <button class="btn active" data-year="2021" id="y2021">2021</button>
+            <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="showLabels" />
+              Labels
+            </label>
           </div>
-          <div class="muted">Dot size = share (%). Grey dots = no value for that Area+mode+year.</div>
+          <div class="muted">Dot size = share (%). Colour = binned percentage. Grey = no value for that Area+mode+year.</div>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
+          <!-- Legend -->
+          <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
       </section>
@@ -77,7 +86,7 @@
     function normName(s){
       return String(s||"")
         .toLowerCase()
-        .replace(/\s*\([^)]*\)\s*/g," ") // drop (P) etc. for joining, not for display
+        .replace(/\s*\([^)]*\)\s*/g," ")
         .replace(/^city of\s+/,"")
         .replace(/[–—-]+/g," ")
         .replace(/\s+/g," ").trim();
@@ -94,12 +103,41 @@
     }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
+    // Colour bins (0–100%)
+    const bins = [
+      {min:0, max:20,  label:"0–20%",  color:"#ef4444"}, // red
+      {min:21, max:30, label:"21–30%", color:"#3b82f6"}, // blue
+      {min:31, max:40, label:"31–40%", color:"#22c55e"}, // green
+      {min:41, max:50, label:"41–50%", color:"#a855f7"}, // purple
+      {min:51, max:60, label:"51–60%", color:"#f59e0b"}, // orange
+      {min:61, max:70, label:"61–70%", color:"#06b6d4"}, // cyan
+      {min:71, max:80, label:"71–80%", color:"#eab308"}, // yellow
+      {min:81, max:90, label:"81–90%", color:"#ec4899"}, // pink
+      {min:91, max:100,label:"91–100%",color:"#0f172a"}  // near-black
+    ];
+    function binColor(v){
+      if (!Number.isFinite(v)) return {color:"#cbd5e1", label:"No data"};
+      for (const b of bins){ if (v >= b.min && v <= b.max) return b; }
+      // clamp outside
+      if (v < 0) return bins[0];
+      return bins[bins.length-1];
+    }
+
+    // Build legend UI
+    const legend = document.getElementById("legend");
+    bins.forEach(b => {
+      const el = document.createElement("div");
+      el.innerHTML = `<span class="sw" style="background:${b.color}"></span> <span style="font-size:12px;color:#475569">${b.label}</span>`;
+      legend.appendChild(el);
+    });
+
     // SVG
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
     const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
     const gBase = svg.append("g");
     const gDots = svg.append("g");
+    const gLabels = svg.append("g");
     const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     // Load files
@@ -109,7 +147,7 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    // *** NEW: drop any Area that ends with "(N)" in BOTH datasets ***
+    // Filter out anything ending with “(N)”
     const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
@@ -126,7 +164,7 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // Detect lon/lat presence
+    // Does the data file already have lon/lat?
     const hasLon = rawData.length && ("lon" in rawData[0]);
     const hasLat = rawData.length && ("lat" in rawData[0]);
 
@@ -160,13 +198,15 @@
     // Controls
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
-    function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y); }
+    const showLabels = document.getElementById("showLabels");
+    function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y, showLabels.checked); }
     modeSel.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
+    showLabels.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
 
-    // Render with tiny force-collision (declutters CBD)
-    function render(mode, year){
+    // Render with tiny force-collision + binned colours + optional labels
+    function render(mode, year, withLabels){
       const rows = data.filter(d => d.mode === mode);
 
       const pts = rows.map(d => {
@@ -180,6 +220,7 @@
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
 
+      // force separation
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
@@ -188,16 +229,19 @@
         .stop();
       for (let i = 0; i < 120; i++) sim.tick();
 
+      // circles
       const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x0).attr("cy", d => d.y0).attr("r", 0)
-          .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
-          .attr("fill-opacity", d => d.hasValue ? 0.75 : 0.9)
-          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
+          .attr("fill", d => binColor(d.value).color)
+          .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
+          .attr("stroke", "#0f172a")
+          .attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1)
           .attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%` : `No data for ${d.mode} ${d.year}`;
+            const b = binColor(d.value);
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${b.label})` : `No data for ${d.mode} ${d.year}`;
             tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
@@ -205,16 +249,30 @@
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
-          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1))
-          .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
-          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8"),
+          .attr("cx", d => d.x).attr("cy", d => d.y)
+          .attr("fill", d => binColor(d.value).color)
+          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
         exit => exit.transition().duration(200).attr("r",0).remove()
+      );
+
+      // labels (optional)
+      const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
+      labels.join(
+        enter => enter.append("text")
+          .attr("class","label")
+          .attr("x", d => d.x + 10).attr("y", d => d.y + 3)
+          .style("opacity", 0)
+          .text(d => `${d.value.toFixed(0)}%`)
+          .transition().duration(250).style("opacity", 1),
+        update => update.transition().duration(250).attr("x", d => d.x + 10).attr("y", d => d.y + 3).text(d => `${d.value.toFixed(0)}%`),
+        exit => exit.transition().duration(150).style("opacity",0).remove()
       );
 
       const missing = nodes.filter(d => !d.hasValue).length;
       console.log(`Mode=${mode} Year=${year}: ${nodes.length - missing} dots with data; ${missing} grey.`);
     }
 
+    // initial
     setYear(2021);
   })();
   </script>
