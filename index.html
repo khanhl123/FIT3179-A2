@@ -21,6 +21,7 @@
     .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
     .muted{color:#64748b;font-size:12px}
     .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
     svg{display:block;width:100%;height:100%}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
   </style>
@@ -45,7 +46,8 @@
             <button class="btn active" data-year="2016" id="y2016">2016</button>
             <button class="btn" data-year="2021" id="y2021">2021</button>
           </div>
-          <div class="muted">Dot size = share (%). Grey dots mean no data for that Area+mode+year.</div>
+          <div class="muted">Dot size = share (%). Grey dots = no value for that Area+mode+year.</div>
+          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
         </div>
         <div id="mapBox"></div>
       </section>
@@ -63,7 +65,33 @@
   (async function () {
     // === File names (same folder as index.html) ===
     const topoUrl = "SA3_2021_AUST_GDA2020.json";                        // background outline (SA3)
-    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // single tidy file: Area,lon,lat,mode,share_2016,share_2021,delta_pp
+    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // may or may not include lon/lat
+    const centUrl = "lga_centroids.csv";                                   // fallback for lon/lat
+
+    // Helpers: normalise names/modes & parse numbers
+    const MODE_ALIASES = new Map([
+      ["taxi/ride-share","Taxi/Rideshare"],["taxi/ride share","Taxi/Rideshare"],
+      ["car - as driver","Car driver"],["car- as driver","Car driver"],
+      ["car - as passenger","Car passenger"],["walked only","Walk"]
+    ]);
+    function normName(s){
+      return String(s||"")
+        .toLowerCase()
+        .replace(/\s*\([^)]*\)\s*/g," ") // drop (P), etc.
+        .replace(/^city of\s+/,"")
+        .replace(/[–—-]+/g," ")
+        .replace(/\s+/g," ").trim();
+    }
+    function normMode(s){
+      const raw = normName(s);
+      return MODE_ALIASES.get(raw) || String(s);
+    }
+    function toNum(x){
+      if (x == null) return NaN;
+      const s = String(x).replace(/,/g,"").replace(/%/g,"").trim();
+      const v = +s;
+      return Number.isFinite(v) ? v : NaN;
+    }
 
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
@@ -73,10 +101,11 @@
     const gDots = svg.append("g");
     const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
-    // Load data
-    const [topology, all] = await Promise.all([
+    // Load files
+    const [topology, rawData, centroids] = await Promise.all([
       d3.json(topoUrl),
-      d3.csv(dataUrl, d3.autoType)
+      d3.csv(dataUrl),
+      d3.csv(centUrl, d3.autoType)
     ]);
 
     // --- Background outline (SA3) ---
@@ -92,12 +121,38 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // --- Build mode list dynamically from file ---
-    const modes = Array.from(new Set(all.map(d => d.mode))).sort((a,b)=>a.localeCompare(b));
+    // --- Detect columns in data file ---
+    const hasLon = "lon" in rawData[0];
+    const hasLat = "lat" in rawData[0];
+
+    // Build a tidy table with Area, lon, lat, mode, share_2016, share_2021, delta_pp
+    let data = rawData.map(d => ({
+      Area: d.Area,
+      area_norm: normName(d.Area),
+      mode: normMode(d.mode ?? d.Mode ?? d.data_label ?? d["Data label"]),
+      // accept either share_2016/share_2021 or 2016%/2021%
+      share_2016: toNum(d.share_2016 ?? d["2016%"] ?? d["2016 %"]),
+      share_2021: toNum(d.share_2021 ?? d["2021%"] ?? d["2021 %"]),
+      delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
+      lon: hasLon ? +d.lon : NaN,
+      lat: hasLat ? +d.lat : NaN
+    }));
+
+    // If lon/lat missing in the data file, join from lga_centroids.csv by normalised Area
+    if (!hasLon || !hasLat) {
+      const byArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
+      data.forEach(d => {
+        const c = byArea.get(d.area_norm);
+        if (c) { d.lon = c.lon; d.lat = c.lat; }
+      });
+      document.getElementById("joinNote").style.display = "block";
+    }
+
+    // Build mode list from data
+    const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
     modes.forEach(m => modeSel.appendChild(new Option(m, m)));
 
-    // --- Controls wiring ---
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
     function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y); }
@@ -105,22 +160,21 @@
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
 
-    // --- Render dots (small radii; grey if missing) ---
     function render(mode, year){
-      // Filter to the selected mode, keep one row per Area
-      const rows = all.filter(d => d.mode === mode);
+      const rows = data.filter(d => d.mode === mode);
 
-      const data = rows.map(d => {
-        const val = year === 2016 ? +d.share_2016 : +d.share_2021;
-        const hasValue = Number.isFinite(val);
-        const p = (Number.isFinite(+d.lon) && Number.isFinite(+d.lat)) ? projection([+d.lon, +d.lat]) : null;
-        return { Area: d.Area, x: p? p[0]:undefined, y: p? p[1]:undefined, value: val, hasValue, mode, year };
-      }).filter(d => d.x !== undefined); // keep rows with coordinates
+      const points = rows.map(d => {
+        const value = year === 2016 ? d.share_2016 : d.share_2021;
+        const hasValue = Number.isFinite(value);
+        const hasCoord = Number.isFinite(d.lon) && Number.isFinite(d.lat);
+        const p = hasCoord ? projection([d.lon, d.lat]) : null;
+        return { Area: d.Area, x: p? p[0]:undefined, y: p? p[1]:undefined, value, hasValue, mode, year };
+      }).filter(d => d.x !== undefined);
 
-      const vMax = d3.max(data.filter(d => d.hasValue), d => d.value) || 10;
+      const vMax = d3.max(points.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([1, 10]);
 
-      const circles = gDots.selectAll("circle").data(data, d => d.Area + "__" + mode);
+      const circles = gDots.selectAll("circle").data(points, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0)
@@ -129,7 +183,8 @@
           .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
           .attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%` : `No data for ${d.mode} ${d.year}`;
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%`
+                                   : `No data for ${d.mode} ${d.year}`;
             tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
@@ -144,12 +199,13 @@
         exit => exit.transition().duration(250).attr("r",0).remove()
       );
 
-      const missingCount = data.filter(d => !d.hasValue).length;
-      console.log(`Rendered ${data.length - missingCount} dots with data; ${missingCount} without.`);
+      // Dev log to help you diagnose
+      const missingVals = points.filter(d => !d.hasValue).length;
+      console.log(`Mode=${mode} Year=${year}: ${points.length - missingVals} dots with data; ${missingVals} without.`);
     }
 
-    // initial view
-    setYear(2016);
+    // initial
+    setYear(2021);
   })();
   </script>
 </body>
