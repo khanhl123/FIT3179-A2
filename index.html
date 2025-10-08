@@ -55,7 +55,6 @@
           </div>
           <div class="muted">Dot size = share (%). Colour = binned percentage. Grey = no value for that Area+mode+year.</div>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-          <!-- Legend -->
           <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
@@ -103,33 +102,31 @@
     }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    // Colour bins (0–100%)
-    const bins = [
-      {min:0, max:20,  label:"0–20%",  color:"#ef4444"}, // red
-      {min:21, max:30, label:"21–30%", color:"#3b82f6"}, // blue
-      {min:31, max:40, label:"31–40%", color:"#22c55e"}, // green
-      {min:41, max:50, label:"41–50%", color:"#a855f7"}, // purple
-      {min:51, max:60, label:"51–60%", color:"#f59e0b"}, // orange
-      {min:61, max:70, label:"61–70%", color:"#06b6d4"}, // cyan
-      {min:71, max:80, label:"71–80%", color:"#eab308"}, // yellow
-      {min:81, max:90, label:"81–90%", color:"#ec4899"}, // pink
-      {min:91, max:100,label:"91–100%",color:"#0f172a"}  // near-black
-    ];
-    function binColor(v){
-      if (!Number.isFinite(v)) return {color:"#cbd5e1", label:"No data"};
-      for (const b of bins){ if (v >= b.min && v <= b.max) return b; }
-      // clamp outside
-      if (v < 0) return bins[0];
-      return bins[bins.length-1];
+    // ----- Binned colour scale (fixed threshold binning) -----
+    const thresholds = [20,30,40,50,60,70,80,90,100]; // upper bounds
+    const colors = ["#ef4444","#3b82f6","#22c55e","#a855f7","#f59e0b","#06b6d4","#eab308","#ec4899","#0f172a"];
+    const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
+    function labelFor(v){
+      if (!Number.isFinite(v)) return "No data";
+      if (v <= 20) return "0–20%";
+      if (v <= 30) return "21–30%";
+      if (v <= 40) return "31–40%";
+      if (v <= 50) return "41–50%";
+      if (v <= 60) return "51–60%";
+      if (v <= 70) return "61–70%";
+      if (v <= 80) return "71–80%";
+      if (v <= 90) return "81–90%";
+      return "91–100%";
     }
-
-    // Build legend UI
+    // Legend UI
     const legend = document.getElementById("legend");
-    bins.forEach(b => {
-      const el = document.createElement("div");
-      el.innerHTML = `<span class="sw" style="background:${b.color}"></span> <span style="font-size:12px;color:#475569">${b.label}</span>`;
-      legend.appendChild(el);
-    });
+    ["0–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%","81–90%","91–100%"]
+      .forEach((lab,i) => {
+        const el = document.createElement("div");
+        el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span>
+                        <span style="font-size:12px;color:#475569">${lab}</span>`;
+        legend.appendChild(el);
+      });
 
     // SVG
     const width = document.getElementById("mapBox").clientWidth;
@@ -147,7 +144,7 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    // Filter out anything ending with “(N)”
+    // Filter out areas ending with “(N)”
     const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
@@ -164,7 +161,7 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // Does the data file already have lon/lat?
+    // Does data include lon/lat?
     const hasLon = rawData.length && ("lon" in rawData[0]);
     const hasLat = rawData.length && ("lat" in rawData[0]);
 
@@ -205,7 +202,7 @@
     y2021.addEventListener("click", () => setYear(2021));
     showLabels.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
 
-    // Render with tiny force-collision + binned colours + optional labels
+    // Render with force-collision + threshold colours + optional labels
     function render(mode, year, withLabels){
       const rows = data.filter(d => d.mode === mode);
 
@@ -234,14 +231,11 @@
       circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x0).attr("cy", d => d.y0).attr("r", 0)
-          .attr("fill", d => binColor(d.value).color)
+          .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
           .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
-          .attr("stroke", "#0f172a")
-          .attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1)
-          .attr("stroke-width", 0.8)
+          .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
-            const b = binColor(d.value);
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${b.label})` : `No data for ${d.mode} ${d.year}`;
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
             tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
@@ -250,19 +244,17 @@
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
           .attr("cx", d => d.x).attr("cy", d => d.y)
-          .attr("fill", d => binColor(d.value).color)
+          .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
           .attr("r", d => r(d.hasValue ? d.value : 0.1)),
         exit => exit.transition().duration(200).attr("r",0).remove()
       );
 
-      // labels (optional)
+      // labels
       const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
       labels.join(
         enter => enter.append("text")
-          .attr("class","label")
-          .attr("x", d => d.x + 10).attr("y", d => d.y + 3)
-          .style("opacity", 0)
-          .text(d => `${d.value.toFixed(0)}%`)
+          .attr("class","label").attr("x", d => d.x + 10).attr("y", d => d.y + 3)
+          .style("opacity", 0).text(d => `${d.value.toFixed(0)}%`)
           .transition().duration(250).style("opacity", 1),
         update => update.transition().duration(250).attr("x", d => d.x + 10).attr("y", d => d.y + 3).text(d => `${d.value.toFixed(0)}%`),
         exit => exit.transition().duration(150).style("opacity",0).remove()
