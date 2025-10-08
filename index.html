@@ -94,11 +94,26 @@
         url: "SA3_2021_AUST_GDA2020.json",
         format: { type: "topojson", feature: "SA3_2021_AUST_GDA2020" }
       },
-      mark: { type: "geoshape", stroke: "#ffffff", strokeWidth: 0.5, fill: "#cbd5e1" },
+      transform: [{
+        lookup: "properties.SA3_CODE21",
+        from: {
+          data: { url: "proportion_transportation_map_FINAL.csv" , key: "SA3_CODE21", fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"] },
+          key: "SA3_CODE21",
+          fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"]
+        }
+      }],
+      mark: { type: "geoshape", stroke: "#ffffff", strokeWidth: 0.5 },
       encoding: {
+        color: {
+          field: "delta_pt_pp", type: "quantitative",
+          title: "Δ Public transport (pp, 2016→2021)",
+          scale: { scheme: "blueorange" }
+        },
         tooltip: [
           { field: "properties.SA3_NAME21", title: "SA3" },
-          { field: "properties.SA4_NAME21", title: "SA4" }
+          { field: "pt_share_2016", title: "PT % 2016" },
+          { field: "pt_share_2021", title: "PT % 2021" },
+          { field: "delta_pt_pp", title: "Change (pp)" }
         ]
       }
     };
