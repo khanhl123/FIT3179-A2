@@ -10,7 +10,8 @@
     h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
     .subtitle{margin-top:6px;color:#64748b;font-size:14px}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
-    .grid{display:grid;grid-template-columns:1fr 320px;gap:20px}
+    /* changed to single column */
+    .grid{display:grid;grid-template-columns:1fr;gap:20px}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
     .card h2{font-size:20px;margin:0 0 12px}
@@ -60,12 +61,7 @@
         <div id="mapBox"></div>
       </section>
 
-      <aside class="card">
-        <div class="pad">
-          <h2>(Placeholder) 2016 vs 2021 by Mode</h2>
-          <p class="muted">We’ll hook this panel to dot clicks next.</p>
-        </div>
-      </aside>
+      <!-- Removed the right-side placeholder panel -->
     </div>
   </div>
 
@@ -236,10 +232,11 @@
           .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
             const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
-            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
+            const area = d.Area;
+            d3.select(".tooltip").style("opacity",1).html(`<strong>${area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
-          .on("mouseleave", () => tip.style("opacity",0))
+          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
