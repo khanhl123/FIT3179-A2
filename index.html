@@ -31,6 +31,15 @@
     main { max-width: var(--maxw); margin: 0 auto; padding: 1rem; }
     .byline { margin-top: .5rem; color: #475569; font-size: .95rem; }
     .chart-section { margin: 2.5rem 0; }
+    /* Responsive two‑column layout for chart rows */
+    .grid-2 { display: block; }
+    @media (min-width: 960px){
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    }
+    .panel {
+      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px;
+      box-shadow: 0 1px 2px rgba(2,6,23,0.04);
+    }
   </style>
   <!-- Vega libraries -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
@@ -50,10 +59,18 @@
     </section>
 
     <!-- Map container -->
-    <section id="map" class="chart-section">
-      <h2 style="margin-bottom:.5rem;">Greater Melbourne — SA3 Outline</h2>
-      <div id="map-vis" aria-label="Greater Melbourne SA3 map"></div>
-      <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Tip: this is the base map. We'll join your CSV next to create a choropleth.</p>
+    <section id="map" class="chart-section grid-2">
+      <!-- Left: Map -->
+      <div class="panel">
+        <h2 style="margin:0 0 .5rem;">Greater Melbourne — SA3 Outline</h2>
+        <div id="map-vis" aria-label="Greater Melbourne SA3 map"></div>
+        <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Tip: this is the base map. We'll join your CSV next to create a choropleth.</p>
+      </div>
+      <!-- Right: Placeholder for a second chart -->
+      <div class="panel" id="right-slot">
+        <h2 style="margin:0 0 .5rem;">(Placeholder) Add second chart here</h2>
+        <div id="chart-slot-1" style="min-height: 200px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">Ready for your next viz</div>
+      </div>
     </section>
 
     <!-- Placeholders for the rest of your visuals -->
