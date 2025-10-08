@@ -22,6 +22,7 @@
     .muted{color:#64748b;font-size:12px}
     .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
     svg{display:block;width:100%;height:100%}
+    @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -58,7 +59,7 @@
             <button class="btn active" data-year="2016" id="y2016">2016</button>
             <button class="btn" data-year="2021" id="y2021">2021</button>
           </div>
-          <div class="muted">Dot size = share (%). Hover for details. Ensure <code>Area</code> names match across both CSVs.</div>
+          <div class="muted">Dot size = share (%). Grey dots mean no data for that Area+mode+year. Ensure <code>Area</code> names match across both CSVs.</div>
         </div>
         <div id="mapBox"></div>
       </section>
@@ -66,7 +67,7 @@
       <aside class="card">
         <div class="pad">
           <h2>(Placeholder) 2016 vs 2021 by Mode</h2>
-          <p class="muted">We’ll hook this panel to dot clicks later.</p>
+          <p class="muted">We’ll hook this panel to dot clicks next.</p>
         </div>
       </aside>
     </div>
@@ -79,9 +80,9 @@
     const centUrl = "lga_centroids.csv";                                // Area,lon,lat
     const wideUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv"; // Area,mode,share_2016,share_2021,delta_pp
 
-    // Setup SVG
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
+
     const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
     const gBase = svg.append("g");
     const gDots = svg.append("g");
@@ -94,7 +95,7 @@
       d3.csv(wideUrl, d3.autoType)
     ]);
 
-    // Background outline (SA3)
+    // ---- Background outline (SA3) ----
     const geo = topojson.feature(topology, topology.objects.SA3_2021_AUST_GDA2020);
     const melb = { type:"FeatureCollection", features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne") };
     const projection = d3.geoMercator().fitSize([width,height], melb);
@@ -107,15 +108,15 @@
       .attr("stroke", "#94a3b8")
       .attr("stroke-width", 0.6);
 
-    // Build lookup of shares: (Area, mode) -> {share_2016, share_2021, delta_pp}
-    const key = (a,m) => `${a}__${m}`;
-    const shares = new Map(wide.map(d => [key(String(d.Area), String(d.mode)), d]));
+    // ---- Lookup of shares: (Area, mode) -> {share_2016, share_2021, delta_pp} ----
+    const key = (a,m) => `${String(a)}__${String(m)}`;
+    const shares = new Map(wide.map(d => [key(d.Area, d.mode), d]));
 
     // Public transport subtotal if your wide file doesn't include it:
     function ptSubtotal(area){
-      const ms = ["Train","Tram","Bus","Ferry"];
+      const modes = ["Train","Tram","Bus","Ferry"];
       const r = {share_2016:0, share_2021:0, delta_pp:0, count:0};
-      ms.forEach(m => {
+      modes.forEach(m => {
         const row = shares.get(key(area, m));
         if (row) { r.share_2016 += +row.share_2016 || 0; r.share_2021 += +row.share_2021 || 0; r.count++; }
       });
@@ -123,7 +124,7 @@
       return r.count ? r : null;
     }
 
-    // Controls
+    // ---- Controls wiring ----
     const modeSel = document.getElementById("modeSel");
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
@@ -132,33 +133,46 @@
     y2016.addEventListener("click", () => setYear(2016));
     y2021.addEventListener("click", () => setYear(2021));
 
+    // ---- Render dots (smaller radii; grey if missing value) ----
     function render(mode, year){
       const data = centroids.map(c => {
         const a = String(c.Area);
         let row = shares.get(key(a, mode));
         if (!row && mode === "Public transport") row = ptSubtotal(a);
-        const value = row ? (year === 2016 ? +row.share_2016 : +row.share_2021) : undefined;
+        const value = row ? (year === 2016 ? +row.share_2016 : +row.share_2021) : NaN;
         const p = projection([+c.lon, +c.lat]);
-        return { Area:a, x:p? p[0]:undefined, y:p? p[1]:undefined, value, mode, year };
-      }).filter(d => d.x !== undefined && Number.isFinite(d.value));
+        return { Area:a, x:p? p[0]:undefined, y:p? p[1]:undefined, value, hasValue:Number.isFinite(value), mode, year };
+      }).filter(d => d.x !== undefined); // keep all with coordinates
 
-      const maxV = d3.max(data, d => d.value) || 10;
-      const r = d3.scaleSqrt().domain([0, maxV]).range([0, 18]);
+      const vMax = d3.max(data.filter(d => d.hasValue), d => d.value) || 10;
+      const r = d3.scaleSqrt().domain([0, vMax]).range([1, 10]); // smaller dots
 
       const circles = gDots.selectAll("circle").data(data, d => d.Area);
       circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", 0)
-          .attr("fill", "#0284c7").attr("fill-opacity", 0.78).attr("stroke", "#0c4a6e").attr("stroke-width", 0.8)
+          .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
+          .attr("fill-opacity", d => d.hasValue ? 0.78 : 0.9)
+          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
+          .attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
-            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${d.mode} ${d.year}: ${d.value.toFixed(1)}%`)
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}%` : `No data for ${d.mode} ${d.year}`;
+            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
           .on("mouseleave", () => tip.style("opacity",0))
-          .transition().duration(450).attr("r", d => r(d.value)),
-        update => update.transition().duration(350).attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.value)),
+          .transition().duration(450)
+          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
+        update => update.transition().duration(350)
+          .attr("cx", d => d.x).attr("cy", d => d.y)
+          .attr("fill", d => d.hasValue ? "#0284c7" : "#cbd5e1")
+          .attr("stroke", d => d.hasValue ? "#0c4a6e" : "#94a3b8")
+          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
         exit => exit.transition().duration(250).attr("r",0).remove()
       );
+
+      const missingCount = data.filter(d => !d.hasValue).length;
+      console.log(`Rendered ${data.length - missingCount} dots with data; ${missingCount} without.`);
     }
 
     // initial view
