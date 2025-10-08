@@ -32,6 +32,10 @@
     .byline { margin-top: .5rem; color: #475569; font-size: .95rem; }
     .chart-section { margin: 2.5rem 0; }
   </style>
+  <!-- Vega libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
 </head>
 <body>
   <header>
@@ -40,12 +44,49 @@
   </header>
 
   <main>
-    <!-- Chart containers (we will fill these next) -->
-    <section id="map" class="chart-section"></section>
+    <!-- Hero intro -->
+    <section class="chart-section" style="text-align:center; max-width:720px; margin-inline:auto;">
+      <p>Exploring commuting shifts between the 2016 and 2021 Censuses with a focus on Greater Melbourne.</p>
+    </section>
+
+    <!-- Map container -->
+    <section id="map" class="chart-section">
+      <h2 style="margin-bottom:.5rem;">Greater Melbourne — SA3 Outline</h2>
+      <div id="map-vis" aria-label="Greater Melbourne SA3 map"></div>
+      <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Tip: this is the base map. We'll join your CSV next to create a choropleth.</p>
+    </section>
+
+    <!-- Placeholders for the rest of your visuals -->
     <section id="slope" class="chart-section"></section>
     <section id="drive" class="chart-section"></section>
     <section id="wfh" class="chart-section"></section>
     <section id="bike" class="chart-section"></section>
+
+    <footer style="margin:3rem 0 2rem; color:#64748b; font-size:.9rem;">
+      Data: ABS 2016 & 2021 Census; City of Sydney Bicycle Counts. Author: Your Name. Date: Oct 2025.
+    </footer>
   </main>
+  <script>
+    // Minimal outline map spec (TopoJSON → geoshape)
+    const mapSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      width: 900,
+      height: 580,
+      projection: { type: "mercator" },
+      data: {
+        url: "SA3_2021_AUST_GDA2020.json",
+        format: { type: "topojson", feature: "SA3_2021_AUST_GDA2020" }
+      },
+      mark: { type: "geoshape", stroke: "#ffffff", strokeWidth: 0.5, fill: "#cbd5e1" },
+      encoding: {
+        tooltip: [
+          { field: "properties.SA3_NAME21", title: "SA3" },
+          { field: "properties.SA4_NAME21", title: "SA4" }
+        ]
+      }
+    };
+
+    vegaEmbed('#map-vis', mapSpec, {actions: false});
+  </script>
 </body>
 </html>
