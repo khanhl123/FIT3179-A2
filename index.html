@@ -13,13 +13,11 @@
     main { max-width: var(--maxw); margin: 0 auto; padding: 1rem; }
     .byline { margin-top: .5rem; color: #475569; font-size: .95rem; }
     .chart-section { margin: 2rem 0; }
-    /* Two‑column responsive layout */
     .grid-2 { display: block; }
     @media (min-width: 960px){ .grid-2 { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
     .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 1px 2px rgba(2,6,23,0.04); }
     footer { margin: 3rem 0 2rem; color: #64748b; font-size: .9rem; }
   </style>
-  <!-- Vega libraries -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
@@ -35,79 +33,94 @@
       <p>Exploring commuting shifts between the 2016 and 2021 Censuses with a focus on Greater Melbourne.</p>
     </section>
 
-    <!-- Map + side panel -->
     <section id="map" class="chart-section grid-2">
-      <!-- Left: Choropleth map -->
       <div class="panel">
         <h2 style="margin:0 0 .5rem;">Greater Melbourne — SA3 Change in Public Transport Share (2016→2021)</h2>
-        <div id="map-vis" aria-label="Greater Melbourne SA3 choropleth" style="min-height:560px"></div>
-        <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Grey areas indicate missing data. Ensure your CSV has rows for all SA3s you want coloured.</p>
+        <div id="map-vis" style="min-height:560px"></div>
+        <p style="color:#64748b; font-size:.9rem; margin-top:.5rem;">Grey areas indicate missing data. Ensure your CSV has SA3_CODE21 and values for the areas you want coloured.</p>
       </div>
-      <!-- Right: Placeholder (we'll add the wide chart next) -->
       <div class="panel" id="right-slot">
         <h2 style="margin:0 0 .5rem;">(Placeholder) 2016 vs 2021 by Mode</h2>
-        <div id="chart-slot-1" style="min-height: 240px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">This panel will show the selected SA3’s modes (2016 vs 2021).</div>
+        <div id="chart-slot-1" style="min-height: 240px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">This will show the selected SA3’s modes (2016 vs 2021).</div>
       </div>
     </section>
 
-    <!-- Additional sections ready for later -->
-    <section id="slope" class="chart-section"></section>
-    <section id="drive" class="chart-section"></section>
-    <section id="wfh" class="chart-section"></section>
-    <section id="bike" class="chart-section"></section>
-
-    <footer>
-      Data: ABS 2016 & 2021 Census; City of Sydney Bicycle Counts. Author: Your Name. Date: Oct 2025.
-    </footer>
+    <footer>Data: ABS 2016 & 2021 Census; City of Sydney Bicycle Counts. Author: Your Name. Date: Oct 2025.</footer>
   </main>
 
   <script>
-    // ====== CONFIGURE YOUR FILE PATHS HERE ======
-    // If your CSVs are inside a folder (e.g., ./data/), just prepend "data/" below.
-    const TOPO_URL = "SA3_2021_AUST_GDA2020.json";               // TopoJSON file in your repo
-    const SA3_CSV  = "proportion_transportation_map.csv";         // Your current CSV name
+    // ==== FILE PATHS (adjust if you move files into a /data folder) ====
+    const TOPO_URL = "SA3_2021_AUST_GDA2020.json";     // Your boundary file (TopoJSON OR GeoJSON)
+    const SA3_CSV  = "proportion_transportation_map.csv"; // Your data to join
 
-    // Choropleth spec — Δ PT share (pp) 2016→2021
-    const mapSpec = {
-      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-      width: 900,
-      height: 560,
-      projection: { type: "mercator" },
-      data: {
-        url: TOPO_URL,
-        format: { type: "topojson", feature: "SA3_2021_AUST_GDA2020" }
-      },
-      transform: [{
-        lookup: "properties.SA3_CODE21",
-        from: {
-          data: { url: SA3_CSV },
-          key: "SA3_CODE21",
-          fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"]
-        }
-      }],
-      mark: { type: "geoshape", fill: "#e2e8f0", stroke: "#94a3b8", strokeWidth: 0.6 },
-      encoding: {
-        color: {
-          // Use a condition so NaN (missing) shows as grey fill
-          condition: {
-            test: "isValid(datum.delta_pt_pp) && isFinite(+datum.delta_pt_pp)",
-            field: "delta_pt_pp",
-            type: "quantitative",
-            title: "Δ Public transport (pp, 2016→2021)",
-            scale: { scheme: "blueorange" }
+    // Build a spec depending on whether the boundary is TopoJSON or GeoJSON
+    async function renderMap() {
+      const res = await fetch(TOPO_URL);
+      const geo = await res.json();
+
+      // Common bits
+      const base = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        width: 900,
+        height: 560,
+        projection: { type: "mercator" },
+        transform: [{
+          lookup: "properties.SA3_CODE21",
+          from: {
+            data: { url: SA3_CSV },
+            key: "SA3_CODE21",
+            fields: ["SA3_NAME21","SA4_NAME21","pt_share_2016","pt_share_2021","delta_pt_pp"]
+          }
+        }],
+        mark: { type: "geoshape", fill: "#e2e8f0", stroke: "#94a3b8", strokeWidth: 0.6 },
+        encoding: {
+          color: {
+            condition: {
+              test: "isValid(datum.delta_pt_pp) && isFinite(+datum.delta_pt_pp)",
+              field: "delta_pt_pp",
+              type: "quantitative",
+              title: "Δ Public transport (pp, 2016→2021)",
+              scale: { scheme: "blueorange" }
+            },
+            value: "#e2e8f0"
           },
-          value: "#e2e8f0" // fallback colour for missing values
-        },
-        tooltip: [
-          { field: "properties.SA3_NAME21", title: "SA3" },
-          { field: "pt_share_2016", title: "PT % 2016" },
-          { field: "pt_share_2021", title: "PT % 2021" },
-          { field: "delta_pt_pp", title: "Change (pp)" }
-        ]
-      }
-    };
+          tooltip: [
+            { field: "properties.SA3_NAME21", title: "SA3" },
+            { field: "pt_share_2016", title: "PT % 2016" },
+            { field: "pt_share_2021", title: "PT % 2021" },
+            { field: "delta_pt_pp", title: "Change (pp)" }
+          ]
+        }
+      };
 
-    vegaEmbed('#map-vis', mapSpec, { actions: false });
+      // If the file is TopoJSON, it will have type === "Topology"
+      let spec;
+      if (geo && geo.type === "Topology") {
+        spec = {
+          ...base,
+          data: {
+            url: TOPO_URL,
+            format: { type: "topojson", feature: "SA3_2021_AUST_GDA2020" }
+          }
+        };
+      } else {
+        // Assume plain GeoJSON FeatureCollection
+        spec = {
+          ...base,
+          data: { values: geo } // no format needed
+        };
+      }
+
+      vegaEmbed("#map-vis", spec, { actions: false }).catch(err => {
+        console.error(err);
+        const msg = document.createElement("div");
+        msg.style.color = "#b91c1c";
+        msg.textContent = "Map failed to render. Open the browser console for details.";
+        document.querySelector("#map-vis").appendChild(msg);
+      });
+    }
+
+    renderMap();
   </script>
 </body>
 </html>
