@@ -1,1 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How Australians got to work?</title>
+  <style>
+    :root { --maxw: 980px; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a; /* slate-900 */
+      background: #f8fafc; /* slate-50 */
+      line-height: 1.5;
+    }
+    header {
+      display: grid;
+      place-items: center;
+      padding: 7rem 1rem 3rem;
+      text-align: center;
+      background: radial-gradient(1200px 600px at 50% -200px, #e2e8f0 0%, #f8fafc 60%);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw + 1rem, 3.25rem);
+      letter-spacing: -0.02em;
+      font-weight: 800;
+    }
+    main { max-width: var(--maxw); margin: 0 auto; padding: 1rem; }
+    .byline { margin-top: .5rem; color: #475569; font-size: .95rem; }
+    .chart-section { margin: 2.5rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>How Australians got to work?</h1>
+    <p class="byline">Commuting shifts between the 2016 and 2021 Censuses</p>
+  </header>
 
+  <main>
+    <!-- Chart containers (we will fill these next) -->
+    <section id="map" class="chart-section"></section>
+    <section id="slope" class="chart-section"></section>
+    <section id="drive" class="chart-section"></section>
+    <section id="wfh" class="chart-section"></section>
+    <section id="bike" class="chart-section"></section>
+  </main>
+</body>
+</html>
