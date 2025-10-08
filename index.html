@@ -10,7 +10,7 @@
     h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
     .subtitle{margin-top:6px;color:#64748b;font-size:14px}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
-    /* changed to single column */
+    /* single column (placeholder panel removed) */
     .grid{display:grid;grid-template-columns:1fr;gap:20px}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
@@ -58,10 +58,16 @@
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
           <div class="legend" id="legend"></div>
         </div>
-        <div id="mapBox"></div>
-      </section>
 
-      <!-- Removed the right-side placeholder panel -->
+        <div id="mapBox"></div>
+
+        <!-- New description below the map -->
+        <div class="pad">
+          <p class="muted" style="margin-top:8px">
+            This interactive map shows, for each Greater Melbourne area, the proportion of employed residents using the selected travel mode—including working from home—in 2016 and 2021. Dot size represents local mode share and colour reflects binned percentage ranges
+          </p>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -232,11 +238,10 @@
           .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
             const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
-            const area = d.Area;
-            d3.select(".tooltip").style("opacity",1).html(`<strong>${area}</strong><br>${txt}`)
+            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
-          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
+          .on("mouseleave", () => tip.style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
