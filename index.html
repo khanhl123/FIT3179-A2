@@ -251,12 +251,13 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (INLINE, fixed width, actions hidden) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (INLINE, y cap 70%, tighter x gap, actions hidden) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
-      // compute width to avoid "container width = 0" issues in CSS grid
-      const w = Math.max(320, container.clientWidth || container.getBoundingClientRect().width || 900);
+      // Keep chart reasonably narrow so 2016–2021 gap is small, but responsive on small screens.
+      const measured = container.clientWidth || container.getBoundingClientRect().width || 900;
+      const w = Math.min(560, Math.max(320, measured)); // clamp to 320–560px
 
       const slopeSpec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -269,13 +270,23 @@
           {"filter": "datum.mode !== 'Total'"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
-          // force numeric just in case
-          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
+          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}  // ensure numeric
         ],
         "mark": {"type":"line","point":true,"strokeWidth":3},
         "encoding": {
-          "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"axis":{"title":"Year"}},
-          "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,100]},"axis":{"title":"Proportion (%)"}},
+          "x": {
+            "field":"Year",
+            "type":"ordinal",
+            "sort":["2016","2021"],
+            "scale":{"padding":0.1},                 // tighter edges
+            "axis":{"title":"Year"}
+          },
+          "y": {
+            "field":"Proportion",
+            "type":"quantitative",
+            "scale":{"domain":[0,70]},               // cap at 70%
+            "axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}
+          },
           "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
           "tooltip": [
             {"field":"mode","title":"Mode"},
