@@ -27,8 +27,15 @@
     svg{display:block;width:100%;height:100%}
     .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
-    #slopeChart{margin-top:16px;min-height:420px;}
+    #slopeChart{min-height:420px;}
     .vega-embed{background:#fff;border-radius:16px;}
+
+    /* --- Two-column layout for slope chart + side notes --- */
+    .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
+    .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
+    .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
+    .side-notes p{margin:0 0 10px}
+    @media (max-width: 900px){ .slope-grid{grid-template-columns:1fr} }
   </style>
 
   <!-- D3 + TopoJSON -->
@@ -84,7 +91,19 @@
           <p class="muted">
             Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.
           </p>
-          <div id="slopeChart"></div>
+
+          <!-- Chart + Right-hand notes -->
+          <div class="slope-grid">
+            <div id="slopeChart"></div>
+
+            <aside class="side-notes">
+              <h3>What stands out</h3>
+              <p>Commuting by car as a driver stayed dominant but fell from about <strong>62%</strong> in 2016 to <strong>53%</strong> in 2021.</p>
+              <p>The biggest shift was <strong>working from home</strong>, which jumped from ~<strong>5%</strong> to ~<strong>21%</strong>, reflecting pandemic-era changes.</p>
+              <p><strong>Public transport</strong> contracted sharply—train dropped from ~<strong>7.2%</strong> to ~<strong>2.5%</strong>, bus from ~<strong>3.5%</strong> to ~<strong>1.8%</strong>, with tram/light rail also declining—while walking, cycling, and car-passenger all edged down.</p>
+              <p>Overall, the slope chart shows a clear move away from shared modes toward <strong>home-based work</strong> and, to a lesser extent, private car use.</p>
+            </aside>
+          </div>
         </div>
       </section>
     </div>
@@ -249,7 +268,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (click to highlight; colors preserved; others dim) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (interactive; colors preserved; others dim) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -267,40 +286,23 @@
           {"filter": "datum.mode !== 'Total'"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
-          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}  // ensure numeric
+          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
         ],
         "params": [
           {
             "name": "pick",
             "select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},
             "bind": "legend",
-            "empty": "all"     // when nothing picked, treat as 'all selected'
+            "empty": "all"
           }
         ],
         "mark": {"type":"line","point":true},
         "encoding": {
-          "x": {
-            "field":"Year",
-            "type":"ordinal",
-            "sort":["2016","2021"],
-            "scale":{"padding":0.1},
-            "axis":{"title":"Year"}
-          },
-          "y": {
-            "field":"Proportion",
-            "type":"quantitative",
-            "scale":{"domain":[0,70]},
-            "axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}
-          },
+          "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
+          "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
           "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
-          "opacity": {
-            "condition": {"param":"pick","value":1},   // selected stays full
-            "value": 0.15                              // unselected dims
-          },
-          "size": {
-            "condition": {"param":"pick","value":3},   // selected line thicker
-            "value": 2
-          },
+          "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
+          "size": {"condition":{"param":"pick","value":3},"value":2},
           "tooltip": [
             {"field":"mode","title":"Mode"},
             {"field":"Year","title":"Year"},
@@ -309,12 +311,7 @@
         },
         "width": w,
         "height": 400,
-        "config": {
-          "axis": {"labelFontSize":12,"titleFontSize":13},
-          "legend": {"labelFontSize":12,"titleFontSize":13},
-          "line": {"interpolate":"monotone"},
-          "view": {"stroke": null}
-        }
+        "config": {"axis":{"labelFontSize":12,"titleFontSize":13},"legend":{"labelFontSize":12,"titleFontSize":13},"line":{"interpolate":"monotone"},"view":{"stroke":null}}
       };
 
       vegaEmbed('#slopeChart', slopeSpec, { actions:false, renderer:'svg' })
