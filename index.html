@@ -82,7 +82,7 @@
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
           <p class="muted">
-            Click a mode in the legend (or the line) to show only that trend. Double-click anywhere to reset.
+            Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.
           </p>
           <div id="slopeChart"></div>
         </div>
@@ -249,7 +249,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (interactive: click to isolate a mode, dblclick to reset) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (click to highlight; colors preserved; others dim) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -267,18 +267,17 @@
           {"filter": "datum.mode !== 'Total'"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
-          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"},
-          {"filter": {"param": "pick"}}   /* when selection empty -> shows all; when chosen -> filters to that mode */
+          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}  // ensure numeric
         ],
         "params": [
           {
             "name": "pick",
-            "select": {"type": "point", "fields": ["mode"]},
+            "select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},
             "bind": "legend",
-            "clear": "dblclick"
+            "empty": "all"     // when nothing picked, treat as 'all selected'
           }
         ],
-        "mark": {"type":"line","point":true,"strokeWidth":3},
+        "mark": {"type":"line","point":true},
         "encoding": {
           "x": {
             "field":"Year",
@@ -294,6 +293,14 @@
             "axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}
           },
           "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
+          "opacity": {
+            "condition": {"param":"pick","value":1},   // selected stays full
+            "value": 0.15                              // unselected dims
+          },
+          "size": {
+            "condition": {"param":"pick","value":3},   // selected line thicker
+            "value": 2
+          },
           "tooltip": [
             {"field":"mode","title":"Mode"},
             {"field":"Year","title":"Year"},
