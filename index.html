@@ -82,7 +82,7 @@
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
           <p class="muted">
-            This slope chart compares the proportion of Australians using each main mode of transport to work between 2016 and 2021, highlighting overall shifts in commuting behavior.
+            Click a mode in the legend (or the line) to show only that trend. Double-click anywhere to reset.
           </p>
           <div id="slopeChart"></div>
         </div>
@@ -147,7 +147,6 @@
       ? "LGA_2021_AUST_GDA2020"
       : Object.keys(topology.objects)[0];
     const geo = topojson.feature(topology, topology.objects[objName]);
-
     let melb = geo;
     const sampleProps = (geo.features[0] && geo.features[0].properties) || {};
     if ("GCC_NAME21" in sampleProps) {
@@ -206,7 +205,6 @@
 
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
-
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
@@ -251,13 +249,12 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (INLINE, y cap 70%, tighter x gap, actions hidden) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (interactive: click to isolate a mode, dblclick to reset) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
-      // Keep chart reasonably narrow so 2016–2021 gap is small, but responsive on small screens.
       const measured = container.clientWidth || container.getBoundingClientRect().width || 900;
-      const w = Math.min(560, Math.max(320, measured)); // clamp to 320–560px
+      const w = Math.min(560, Math.max(320, measured)); // keep gap small
 
       const slopeSpec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -270,7 +267,16 @@
           {"filter": "datum.mode !== 'Total'"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
-          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}  // ensure numeric
+          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"},
+          {"filter": {"param": "pick"}}   /* when selection empty -> shows all; when chosen -> filters to that mode */
+        ],
+        "params": [
+          {
+            "name": "pick",
+            "select": {"type": "point", "fields": ["mode"]},
+            "bind": "legend",
+            "clear": "dblclick"
+          }
         ],
         "mark": {"type":"line","point":true,"strokeWidth":3},
         "encoding": {
@@ -278,13 +284,13 @@
             "field":"Year",
             "type":"ordinal",
             "sort":["2016","2021"],
-            "scale":{"padding":0.1},                 // tighter edges
+            "scale":{"padding":0.1},
             "axis":{"title":"Year"}
           },
           "y": {
             "field":"Proportion",
             "type":"quantitative",
-            "scale":{"domain":[0,70]},               // cap at 70%
+            "scale":{"domain":[0,70]},
             "axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}
           },
           "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
