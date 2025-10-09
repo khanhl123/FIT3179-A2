@@ -38,6 +38,16 @@
     .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid{grid-template-columns:1fr} }
+
+    /* --- Style the Vega-Lite radio bindings for the AUS map --- */
+    #ausMap .vega-bindings{
+      display:flex; gap:14px; align-items:center; margin-top:10px;
+      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
+      font-size:14px;
+    }
+    #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
+    #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
+    #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
   </style>
 
   <!-- D3 + TopoJSON -->
@@ -61,7 +71,7 @@
       <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) ===== -->
       <section class="card">
         <div class="pad">
-          <h2>Capital city areas — Drivers vs Working from home (2021)</h2>
+          <h2>Driving to work vs Working from home (2021)</h2>
           <p class="muted">Use the toggle to switch the colour metric. Hover for exact values. (ACT has no “Rest of State”.)</p>
           <div id="ausMap" style="max-width:1000px;margin:10px auto;"></div>
         </div>
@@ -115,29 +125,33 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (fit to states + state choropleth) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (state choropleth) ===== -->
   <script>
   (function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";    // objects.states
-    const gccsaURL= "https://khanhl123.github.io/FIT3179-A2/gccsa_2021.json";  // objects.gccsa (not needed for coloring, kept if you want to overlay later)
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 520,
-      projection: { type: "equalEarth" },  // auto-fits to first layer (states)
+      projection: { type: "equalEarth" },  // fits to states layer
 
       params: [
         {
           name: "metricSel",
           value: "driver_pct",
-          bind: { input: "radio", options: ["driver_pct","wfh_pct_2021"], labels: ["Drivers (%)","Working from home (%)"] }
+          bind: {
+            input: "radio",
+            name: "Metric: ",
+            options: ["driver_pct","wfh_pct_2021"],
+            labels: ["Drivers (%)","Working from home (%)"]
+          }
         }
       ],
 
       layer: [
-        /* 1) STATES filled by chosen metric (join via STE_NAME_2021) */
+        /* STATES filled by chosen metric (join via STE_NAME_2021) */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           transform: [
@@ -156,7 +170,7 @@
                 test: "isValid(datum.metric_value)",
                 field: "metric_value",
                 type: "quantitative",
-                title: "Share (%)",
+                title: "Proportion (%)",
                 scale: { domain: [0, 80], scheme: "blues" },
                 legend: { format: ".0f" }
               },
@@ -168,8 +182,7 @@
             ]
           }
         },
-
-        /* 2) STATE borders on top for clarity */
+        /* Borders on top */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
