@@ -27,9 +27,18 @@
     svg{display:block;width:100%;height:100%}
     .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
+    #slopeChart{margin-top:16px;}
+    .vega-embed{background:#fff;border-radius:16px;}
   </style>
+
+  <!-- D3 + TopoJSON -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+
+  <!-- Vega-Lite + Vega-Embed -->
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
 </head>
 <body>
   <header>
@@ -39,6 +48,7 @@
 
   <div class="wrap">
     <div class="grid">
+      <!-- ===== Map Section ===== -->
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode & year</h2>
@@ -66,60 +76,47 @@
           </p>
         </div>
       </section>
+
+      <!-- ===== Slope Chart Section ===== -->
+      <section class="card">
+        <div class="pad">
+          <h2>Shift in Transportation Modes (2016 → 2021)</h2>
+          <p class="muted">
+            This slope chart compares the proportion of Australians using each main mode of transport to work between 2016 and 2021, highlighting overall shifts in commuting behavior.
+          </p>
+          <div id="slopeChart"></div>
+        </div>
+      </section>
     </div>
   </div>
 
+  <!-- ===== D3 Map Script ===== -->
   <script>
   (async function () {
-    // ===== File names (same folder as index.html) =====
-    const topoUrl = "LGA_2021_AUST_GDA2020.json"; // << here: your new LGA TopoJSON
+    const topoUrl = "LGA_2021_AUST_GDA2020.json";
     const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";
     const centUrl = "lga_centroids.csv";
 
-    // Helpers
     const MODE_ALIASES = new Map([
       ["taxi/ride-share","Taxi/Rideshare"],["taxi/ride share","Taxi/Rideshare"],
       ["car - as driver","Car driver"],["car- as driver","Car driver"],
       ["car - as passenger","Car passenger"],["walked only","Walk"]
     ]);
-    function normName(s){
-      return String(s||"")
-        .toLowerCase()
-        .replace(/\s*\([^)]*\)\s*/g," ")
-        .replace(/^city of\s+/,"")
-        .replace(/[–—-]+/g," ")
-        .replace(/\s+/g," ").trim();
-    }
-    function normMode(s){
-      const raw = normName(s);
-      return MODE_ALIASES.get(raw) || String(s);
-    }
-    function toNum(x){
-      if (x == null) return NaN;
-      const s = String(x).replace(/,/g,"").replace(/%/g,"").trim();
-      const v = +s;
-      return Number.isFinite(v) ? v : NaN;
-    }
+    function normName(s){ return String(s||"").toLowerCase().replace(/\s*\([^)]*\)\s*/g," ").replace(/^city of\s+/,"").replace(/[–—-]+/g," ").replace(/\s+/g," ").trim(); }
+    function normMode(s){ const raw = normName(s); return MODE_ALIASES.get(raw) || String(s); }
+    function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    // ----- Binned colour scale (fixed threshold binning) -----
-    // (Fix: 8 thresholds -> 9 bins; your legend lists 9 bins)
     const thresholds = [20,30,40,50,60,70,80,90];
     const colors = ["#ef4444","#3b82f6","#22c55e","#a855f7","#f59e0b","#06b6d4","#eab308","#ec4899","#0f172a"];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
     function labelFor(v){
       if (!Number.isFinite(v)) return "No data";
-      if (v <= 20) return "0–20%";
-      if (v <= 30) return "21–30%";
-      if (v <= 40) return "31–40%";
-      if (v <= 50) return "41–50%";
-      if (v <= 60) return "51–60%";
-      if (v <= 70) return "61–70%";
-      if (v <= 80) return "71–80%";
-      if (v <= 90) return "81–90%";
-      return "91–100%";
+      if (v <= 20) return "0–20%"; if (v <= 30) return "21–30%"; if (v <= 40) return "31–40%";
+      if (v <= 50) return "41–50%"; if (v <= 60) return "51–60%"; if (v <= 70) return "61–70%";
+      if (v <= 80) return "71–80%"; if (v <= 90) return "81–90%"; return "91–100%";
     }
-    // Legend UI
+
     const legend = document.getElementById("legend");
     ["0–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%","81–90%","91–100%"]
       .forEach((lab,i) => {
@@ -129,7 +126,6 @@
         legend.appendChild(el);
       });
 
-    // SVG
     const width = document.getElementById("mapBox").clientWidth;
     const height = document.getElementById("mapBox").clientHeight;
     const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
@@ -138,51 +134,36 @@
     const gLabels = svg.append("g");
     const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
-    // Load files
     const [topology, rawDataAll, centroidsAll] = await Promise.all([
       d3.json(topoUrl),
       d3.csv(dataUrl),
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    // Filter out areas ending with “(N)”
     const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
-    // ----- LGA polygons (match your data geography) -----
-    // Try to use the expected object name; fall back to the first object if needed.
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
-      ? "LGA_2021_AUST_GDA2020"                                     // << here: TopoJSON object name
+      ? "LGA_2021_AUST_GDA2020"
       : Object.keys(topology.objects)[0];
-
     const geo = topojson.feature(topology, topology.objects[objName]);
 
-    // If your TopoJSON is already clipped to Greater Melbourne (31 LGAs), use all features.
-    // If it includes GCC_NAME21, we can filter to "Greater Melbourne".
     let melb = geo;
     const sampleProps = (geo.features[0] && geo.features[0].properties) || {};
     if ("GCC_NAME21" in sampleProps) {
-      melb = {
-        type:"FeatureCollection",
-        features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne")
-      };
+      melb = {type:"FeatureCollection",features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne")};
     }
 
     const projection = d3.geoMercator().fitSize([width,height], melb);
     const path = d3.geoPath(projection);
-
     gBase.append("g")
       .selectAll("path").data(melb.features).join("path")
-      .attr("d", path)
-      .attr("fill", "#eef2ff")
-      .attr("stroke", "#94a3b8")
-      .attr("stroke-width", 0.6);
+      .attr("d", path).attr("fill", "#eef2ff")
+      .attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
 
-    // Does data include lon/lat?
     const hasLon = rawData.length && ("lon" in rawData[0]);
     const hasLat = rawData.length && ("lat" in rawData[0]);
 
-    // Tidy table
     let data = rawData.map(d => ({
       Area: d.Area,
       area_norm: normName(d.Area),
@@ -194,22 +175,16 @@
       lat: hasLat ? +d.lat : NaN
     }));
 
-    // Join lon/lat if missing
     if (!hasLon || !hasLat) {
       const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
-      data.forEach(d => {
-        const c = centByArea.get(d.area_norm);
-        if (c) { d.lon = c.lon; d.lat = c.lat; }
-      });
+      data.forEach(d => { const c = centByArea.get(d.area_norm); if (c) { d.lon = c.lon; d.lat = c.lat; } });
       document.getElementById("joinNote").style.display = "block";
     }
 
-    // Mode list
     const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
     modes.forEach(m => modeSel.appendChild(new Option(m, m)));
 
-    // Controls
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
     const showLabels = document.getElementById("showLabels");
@@ -219,10 +194,8 @@
     y2021.addEventListener("click", () => setYear(2021));
     showLabels.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
 
-    // Render with force-collision + threshold colours + optional labels
     function render(mode, year, withLabels){
       const rows = data.filter(d => d.mode === mode);
-
       const pts = rows.map(d => {
         const value = year === 2016 ? d.share_2016 : d.share_2021;
         const hasValue = Number.isFinite(value);
@@ -234,7 +207,6 @@
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
 
-      // force separation
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
@@ -243,7 +215,6 @@
         .stop();
       for (let i = 0; i < 120; i++) sim.tick();
 
-      // circles
       const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
@@ -266,7 +237,6 @@
         exit => exit.transition().duration(200).attr("r",0).remove()
       );
 
-      // labels
       const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
       labels.join(
         enter => enter.append("text")
@@ -276,14 +246,37 @@
         update => update.transition().duration(250).attr("x", d => d.x + 10).attr("y", d => d.y + 3).text(d => `${d.value.toFixed(0)}%`),
         exit => exit.transition().duration(150).style("opacity",0).remove()
       );
-
-      const missing = nodes.filter(d => !d.hasValue).length;
-      console.log(`Mode=${mode} Year=${year}: ${nodes.length - missing} dots with data; ${missing} grey.`);
     }
-
-    // initial
     setYear(2021);
   })();
+  </script>
+
+  <!-- ===== Vega-Lite Slope Chart ===== -->
+  <script type="text/javascript">
+    const slopeSpec = {
+      "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+      "description": "Slope chart showing change in transport mode proportions (2016–2021)",
+      "data": { "url": "proportion_transportation_slopchart.csv" },
+      "mark": { "type": "line", "point": true, "strokeWidth": 3 },
+      "encoding": {
+        "x": { "field": "Year", "type": "ordinal", "axis": {"title": "Year"} },
+        "y": { "field": "Proportion", "type": "quantitative", "axis": {"title": "Proportion (%)"} },
+        "color": { "field": "Transport_Mode", "type": "nominal", "legend": {"title": "Mode of Transport"} },
+        "tooltip": [
+          {"field": "Transport_Mode", "type": "nominal"},
+          {"field": "Year", "type": "ordinal"},
+          {"field": "Proportion", "type": "quantitative", "format": ".1f"}
+        ]
+      },
+      "width": "container",
+      "height": 400,
+      "config": {
+        "axis": { "labelFontSize": 12, "titleFontSize": 13 },
+        "legend": { "labelFontSize": 12, "titleFontSize": 13 },
+        "line": { "interpolate": "monotone" }
+      }
+    };
+    vegaEmbed('#slopeChart', slopeSpec).catch(console.error);
   </script>
 </body>
 </html>
