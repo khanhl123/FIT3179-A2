@@ -115,10 +115,10 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (robust paths + join) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (correct object names) ===== -->
   <script>
   (function(){
-    // Files live in the repo ROOT (not /data/)
+    // Files are in the repo root
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const gccsaURL= "https://khanhl123.github.io/FIT3179-A2/gccsa_2021.json";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
@@ -137,24 +137,16 @@
       ],
       data: {
         url: gccsaURL,
-        // Most Mapshaper exports call the object "layer". If your file uses
-        // GCCSA_2021_AUST_GDA2020 instead, change "layer" to that exact name.
-        format: { type: "topojson", feature: "layer" }
+        // YOUR file's object name is "gccsa"
+        format: { type: "topojson", feature: "gccsa" }
       },
       transform: [
-        // Build a safe join key from whatever name field exists
-        {
-          calculate:
-            "isValid(datum.properties['GCCSA_NAME_2021']) ? datum.properties['GCCSA_NAME_2021'] :" +
-            "isValid(datum.properties['GCC_NAME21']) ? datum.properties['GCC_NAME21'] :" +
-            "datum.properties['GCCSA_NAME21']",
-          as: "join_name"
-        },
+        // Join using the field that exists in your TopoJSON
+        { calculate: "datum.properties['GCCSA_NAME_2021']", as: "join_name" },
         {
           lookup: "join_name",
           from: { data: {url: csvURL}, key: "GCCSA_NAME_2021", fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021"] }
         },
-        // Use whichever metric is selected for color
         { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
       ],
       layer: [
@@ -177,8 +169,8 @@
           }
         },
         {
-          // State outlines
-          data: { url: steURL, format: { type: "topojson", feature: "layer" } },
+          // State outlines — YOUR file's object name is "states"
+          data: { url: steURL, format: { type: "topojson", feature: "states" } },
           mark: { type: "geoshape", fill: null, stroke: "#475569", strokeWidth: 0.7 }
         }
       ],
