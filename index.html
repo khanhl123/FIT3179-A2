@@ -14,23 +14,25 @@
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
     .card h2{font-size:20px;margin:0 0 12px}
+    .muted{color:#64748b;font-size:12px}
+    .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
+
+    /* Map (Greater Melbourne) */
     #mapBox{height:620px; position:relative;}
     .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
     select,button,label{font:inherit}
     .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
     .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
-    .muted{color:#64748b;font-size:12px}
     .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
     .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
-    .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
-    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
     svg{display:block;width:100%;height:100%}
     .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
     #slopeChart{min-height:420px;}
     .vega-embed{background:#fff;border-radius:16px;}
 
-    /* --- Two-column layout for slope chart + side notes --- */
+    /* Two-column layout for slope chart + side notes */
     .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
     .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
     .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
@@ -50,15 +52,25 @@
 <body>
   <header>
     <h1>How Australians got to work?</h1>
-    <div class="subtitle">Dot map of mode share by LGA (2016 vs 2021) over a Greater Melbourne outline.</div>
+    <div class="subtitle">Australia-wide overview (capitals) + Greater Melbourne detail | 2016–2021</div>
   </header>
 
   <div class="wrap">
     <div class="grid">
-      <!-- ===== Map Section ===== -->
+
+      <!-- ===== Australia-wide (Capitals) Map: Drivers vs WFH (2021) ===== -->
       <section class="card">
         <div class="pad">
-          <h2>Greater Melbourne — Dot map by mode & year</h2>
+          <h2>Capital city areas — Drivers vs Working from home (2021)</h2>
+          <p class="muted">Use the toggle to switch the colour metric. Hover for exact values. (ACT has no “Rest of State” by design.)</p>
+          <div id="ausMap" style="max-width:1000px;margin:10px auto;"></div>
+        </div>
+      </section>
+
+      <!-- ===== Greater Melbourne Dot Map (your original) ===== -->
+      <section class="card">
+        <div class="pad">
+          <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
           <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
@@ -74,12 +86,10 @@
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
           <div class="legend" id="legend"></div>
         </div>
-
         <div id="mapBox"></div>
-
         <div class="pad">
           <p class="muted" style="margin-top:8px">
-            This interactive map shows, for each Greater Melbourne area, the proportion of employed residents using the selected travel mode—including working from home—in 2016 and 2021. Dot size represents local mode share and colour reflects binned percentage ranges.
+            This interactive map shows, for each Greater Melbourne area, the proportion of employed residents using the selected travel mode—including working from home—in 2016 and 2021.
           </p>
         </div>
       </section>
@@ -88,14 +98,9 @@
       <section class="card">
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
-          <p class="muted">
-            Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.
-          </p>
-
-          <!-- Chart + Right-hand notes -->
+          <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
             <div id="slopeChart"></div>
-
             <aside class="side-notes">
               <h3>What stands out</h3>
               <p>Commuting by car as a driver stayed dominant but fell from about <strong>62%</strong> in 2016 to <strong>53%</strong> in 2021.</p>
@@ -106,10 +111,91 @@
           </div>
         </div>
       </section>
+
     </div>
   </div>
 
-  <!-- ===== D3 Map Script ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map Script ===== -->
+  <script>
+  (function(){
+    const csvURL = "https://khanhl123.github.io/FIT3179-A2/data/gccsa_capitals_wfh_drivers_2021.csv";
+    const gccsaURL = "https://khanhl123.github.io/FIT3179-A2/data/gccsa_2021.json";
+    const steURL   = "https://khanhl123.github.io/FIT3179-A2/data/ste_2021.json";
+
+    // IMPORTANT: If your TopoJSON 'objects' aren't named 'gccsa'/'states',
+    // change the two 'feature:' values below to match your object names.
+    const ausSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      width: "container",
+      height: 520,
+      params: [
+        {
+          name: "metricSel",
+          value: "driver_pct",
+          bind: {
+            input: "radio",
+            options: ["driver_pct","wfh_pct_2021"],
+            labels: ["Drivers (%)","Working from home (%)"]
+          }
+        }
+      ],
+      data: {
+        url: gccsaURL,
+        format: {type: "topojson", feature: "gccsa"} // <-- change if object name differs
+      },
+      transform: [
+        // Your CSV is capitals-only; keep Capital features (if present in the TopoJSON)
+        {calculate: "datum.properties && datum.properties.scope ? datum.properties.scope : 'Capital'", as: "scope_prop"},
+        {filter: "datum.scope_prop == 'Capital'"},
+        {
+          lookup: "properties.GCCSA_NAME_2021",
+          from: {
+            data: {url: csvURL},
+            key: "GCCSA_NAME_2021",
+            fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021","scope"]
+          }
+        }
+      ],
+      layer: [
+        {
+          mark: {type: "geoshape"},
+          encoding: {
+            color: {
+              field: {param: "metricSel"},
+              type: "quantitative",
+              title: {expr: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'Working from home (%)'"},
+              scale: {domain: [0,80], scheme: "blues"},
+              legend: {format: ".0f"}
+            },
+            tooltip: [
+              {field: "properties.GCCSA_NAME_2021", title: "Area"},
+              {field: "STE_NAME_2021", title: "State/Territory"},
+              {field: "driver_pct", title: "Drivers (%)", format: ".1f"},
+              {field: "wfh_pct_2021", title: "WFH (%)", format: ".1f"}
+            ]
+          }
+        },
+        {
+          data: {url: steURL, format: {type: "topojson", feature: "states"}}, // <-- change if object name differs
+          mark: {type: "geoshape", fill: null, stroke: "#475569", strokeWidth: 0.6}
+        }
+      ],
+      config: {view: {stroke: null}, axis: {labelFontSize: 12, titleFontSize: 13}}
+    };
+
+    vegaEmbed("#ausMap", ausSpec, {actions:false}).catch(err=>{
+      console.error("Vega-Lite map error:", err);
+      const el = document.getElementById("ausMap");
+      const warn = document.createElement("div");
+      warn.className = "muted";
+      warn.style.marginTop = "8px";
+      warn.textContent = "Could not load the Australia-wide map. Check that the dataset URLs and TopoJSON feature names are correct.";
+      el.appendChild(warn);
+    });
+  })();
+  </script>
+
+  <!-- ===== Greater Melbourne D3 Map Script (unchanged core) ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -241,10 +327,10 @@
           .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
           .on("mousemove", (e,d) => {
             const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
-            tip.style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
+            d3.select(".tooltip").style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
                .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
           })
-          .on("mouseleave", () => tip.style("opacity",0))
+          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
@@ -268,7 +354,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (interactive; colors preserved; others dim) ===== -->
+  <!-- ===== Vega-Lite Slope Chart ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
