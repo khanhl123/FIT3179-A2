@@ -27,7 +27,7 @@
     svg{display:block;width:100%;height:100%}
     .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
-    #slopeChart{margin-top:16px;}
+    #slopeChart{margin-top:16px;min-height:420px;}
     .vega-embed{background:#fff;border-radius:16px;}
   </style>
 
@@ -147,6 +147,7 @@
       ? "LGA_2021_AUST_GDA2020"
       : Object.keys(topology.objects)[0];
     const geo = topojson.feature(topology, topology.objects[objName]);
+
     let melb = geo;
     const sampleProps = (geo.features[0] && geo.features[0].properties) || {};
     if ("GCC_NAME21" in sampleProps) {
@@ -202,8 +203,10 @@
         const p = hasCoord ? projection([d.lon, d.lat]) : null;
         return { Area: d.Area, x0: p? p[0]:undefined, y0: p? p[1]:undefined, value, hasValue, mode, year };
       }).filter(d => d.x0 !== undefined);
+
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
+
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
@@ -248,12 +251,18 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (external JSON spec) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (external JSON spec, actions hidden) ===== -->
   <script type="text/javascript">
-    vegaEmbed(
-      '#slopeChart',
-      'https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/visualization.vl.json'
-    ).catch(console.error);
+    const slopeSpecUrl = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/visualization.vl.json";
+    vegaEmbed('#slopeChart', slopeSpecUrl, { actions: false })
+      .catch(err => {
+        console.error('Vega-Lite load error:', err);
+        const warn = document.createElement('div');
+        warn.className = 'banner';
+        warn.style.display = 'block';
+        warn.textContent = 'Could not load the slope chart. Check that visualization.vl.json and the CSV are in the repo and publicly accessible.';
+        document.querySelector('#slopeChart').appendChild(warn);
+      });
   </script>
 </body>
 </html>
