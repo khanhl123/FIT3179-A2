@@ -18,7 +18,7 @@
     .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
-    /* Map (Greater Melbourne) */
+    /* Greater Melbourne map */
     #mapBox{height:620px; position:relative;}
     .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
     select,button,label{font:inherit}
@@ -67,7 +67,7 @@
         </div>
       </section>
 
-      <!-- ===== Greater Melbourne Dot Map ===== -->
+      <!-- ===== Greater Melbourne — Dot map by mode & year ===== -->
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
@@ -98,7 +98,7 @@
       <section class="card">
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
-          <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
+        <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
             <div id="slopeChart"></div>
             <aside class="side-notes">
@@ -115,19 +115,21 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (correct object names) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (correct objects + manual projection + single metric) ===== -->
   <script>
   (function(){
-    // Files are in the repo root
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
-    const gccsaURL= "https://khanhl123.github.io/FIT3179-A2/gccsa_2021.json";
-    const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
+    const gccsaURL= "https://khanhl123.github.io/FIT3179-A2/gccsa_2021.json";  // objects.gccsa
+    const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";    // objects.states
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 520,
-      projection: {type: "equalEarth"},
+
+      /* Fill the frame even though only 8 GCCSAs are coloured */
+      projection: { type: "equalEarth", center: [134, -25], scale: 1100 },
+
       params: [
         {
           name: "metricSel",
@@ -135,45 +137,48 @@
           bind: { input: "radio", options: ["driver_pct","wfh_pct_2021"], labels: ["Drivers (%)","Working from home (%)"] }
         }
       ],
-      data: {
-        url: gccsaURL,
-        // YOUR file's object name is "gccsa"
-        format: { type: "topojson", feature: "gccsa" }
-      },
+
+      data: { url: gccsaURL, format: { type: "topojson", feature: "gccsa" } },
+
       transform: [
-        // Join using the field that exists in your TopoJSON
         { calculate: "datum.properties['GCCSA_NAME_2021']", as: "join_name" },
-        {
-          lookup: "join_name",
-          from: { data: {url: csvURL}, key: "GCCSA_NAME_2021", fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021"] }
-        },
-        { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
+        { lookup: "join_name",
+          from: { data: {url: csvURL}, key: "GCCSA_NAME_2021",
+                  fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021"] } },
+        { filter: "isValid(datum.driver_pct) || isValid(datum.wfh_pct_2021)" },
+        { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" },
+        { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_title" },
+        { calculate: "format(datum.metric_value, '.1f') + '%'", as: "metric_text" }
       ],
+
       layer: [
         {
-          mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.6 },
+          mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.7 },
           encoding: {
             color: {
-              field: "metric_value",
-              type: "quantitative",
-              title: "Share (%)",
-              scale: { domain: [0, 80], scheme: "blues" },
-              legend: { format: ".0f" }
+              condition: {
+                test: "isValid(datum.metric_value)",
+                field: "metric_value",
+                type: "quantitative",
+                title: "Share (%)",
+                scale: { domain: [0, 80], scheme: "blues" },
+                legend: { format: ".0f" }
+              },
+              value: "#e5e7eb"
             },
             tooltip: [
               { field: "join_name", title: "Area" },
               { field: "STE_NAME_2021", title: "State/Territory" },
-              { field: "driver_pct", title: "Drivers (%)", format: ".1f" },
-              { field: "wfh_pct_2021", title: "WFH (%)", format: ".1f" }
+              { field: "metric_text", title: { expr: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'" } }
             ]
           }
         },
         {
-          // State outlines — YOUR file's object name is "states"
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
-          mark: { type: "geoshape", fill: null, stroke: "#475569", strokeWidth: 0.7 }
+          mark: { type: "geoshape", fill: null, stroke: "#475569", strokeWidth: 0.9 }
         }
       ],
+
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
@@ -189,7 +194,7 @@
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map (unchanged) ===== -->
+  <!-- ===== Greater Melbourne D3 Map ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
