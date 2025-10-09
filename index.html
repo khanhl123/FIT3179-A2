@@ -251,18 +251,58 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (external JSON spec, actions hidden) ===== -->
-  <script type="text/javascript">
-    const slopeSpecUrl = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/visualization.vl.json";
-    vegaEmbed('#slopeChart', slopeSpecUrl, { actions: false })
-      .catch(err => {
-        console.error('Vega-Lite load error:', err);
-        const warn = document.createElement('div');
-        warn.className = 'banner';
-        warn.style.display = 'block';
-        warn.textContent = 'Could not load the slope chart. Check that visualization.vl.json and the CSV are in the repo and publicly accessible.';
-        document.querySelector('#slopeChart').appendChild(warn);
-      });
+  <!-- ===== Vega-Lite Slope Chart (INLINE, fixed width, actions hidden) ===== -->
+  <script>
+    (function(){
+      const container = document.getElementById('slopeChart');
+      // compute width to avoid "container width = 0" issues in CSS grid
+      const w = Math.max(320, container.clientWidth || container.getBoundingClientRect().width || 900);
+
+      const slopeSpec = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "description": "Slope chart showing change in transport mode proportions (2016–2021)",
+        "data": {
+          "url": "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/proportion_transportation_slopchart.csv",
+          "format": {"type": "csv"}
+        },
+        "transform": [
+          {"filter": "datum.mode !== 'Total'"},
+          {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
+          {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
+          // force numeric just in case
+          {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
+        ],
+        "mark": {"type":"line","point":true,"strokeWidth":3},
+        "encoding": {
+          "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"axis":{"title":"Year"}},
+          "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,100]},"axis":{"title":"Proportion (%)"}},
+          "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
+          "tooltip": [
+            {"field":"mode","title":"Mode"},
+            {"field":"Year","title":"Year"},
+            {"field":"Proportion","title":"Proportion (%)","format":".1f"}
+          ]
+        },
+        "width": w,
+        "height": 400,
+        "config": {
+          "axis": {"labelFontSize":12,"titleFontSize":13},
+          "legend": {"labelFontSize":12,"titleFontSize":13},
+          "line": {"interpolate":"monotone"},
+          "view": {"stroke": null}
+        }
+      };
+
+      vegaEmbed('#slopeChart', slopeSpec, { actions:false, renderer:'svg' })
+        .catch(err => {
+          console.error('Vega-Lite load error:', err);
+          const warn = document.createElement('div');
+          warn.className = 'banner';
+          warn.style.display = 'block';
+          warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
+          container.appendChild(warn);
+        });
+    })();
   </script>
 </body>
 </html>
