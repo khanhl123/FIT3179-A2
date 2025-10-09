@@ -115,15 +115,13 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map Script ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map Script (robust join + correct object names) ===== -->
   <script>
   (function(){
     const csvURL = "https://khanhl123.github.io/FIT3179-A2/data/gccsa_capitals_wfh_drivers_2021.csv";
     const gccsaURL = "https://khanhl123.github.io/FIT3179-A2/data/gccsa_2021.json";
     const steURL   = "https://khanhl123.github.io/FIT3179-A2/data/ste_2021.json";
 
-    // IMPORTANT: If your TopoJSON 'objects' aren't named 'gccsa'/'states',
-    // change the two 'feature:' values below to match your object names.
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
@@ -141,19 +139,27 @@
       ],
       data: {
         url: gccsaURL,
-        format: {type: "topojson", feature: "gccsa"} // <-- change if object name differs
+        // IMPORTANT: Mapshaper default object names
+        format: {type: "topojson", feature: "GCCSA_2021_AUST_GDA2020"}
       },
       transform: [
-        // Your CSV is capitals-only; keep Capital features (if present in the TopoJSON)
-        {calculate: "datum.properties && datum.properties.scope ? datum.properties.scope : 'Capital'", as: "scope_prop"},
-        {filter: "datum.scope_prop == 'Capital'"},
+        /* Build a robust join key: try GCCSA_NAME_2021, else GCC_NAME21 */
         {
-          lookup: "properties.GCCSA_NAME_2021",
+          calculate: "isValid(datum['properties']['GCCSA_NAME_2021']) ? datum['properties']['GCCSA_NAME_2021'] : datum['properties']['GCC_NAME21']",
+          as: "join_name"
+        },
+        {
+          lookup: "join_name",
           from: {
             data: {url: csvURL},
             key: "GCCSA_NAME_2021",
-            fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021","scope"]
+            fields: ["driver_pct","wfh_pct_2021","STE_NAME_2021"]
           }
+        },
+        /* Metric toggle to a single field the color can use */
+        {
+          calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021",
+          as: "metric_value"
         }
       ],
       layer: [
@@ -161,14 +167,14 @@
           mark: {type: "geoshape"},
           encoding: {
             color: {
-              field: {param: "metricSel"},
+              field: "metric_value",
               type: "quantitative",
-              title: {expr: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'Working from home (%)'"},
+              title: "Share (%)",
               scale: {domain: [0,80], scheme: "blues"},
               legend: {format: ".0f"}
             },
             tooltip: [
-              {field: "properties.GCCSA_NAME_2021", title: "Area"},
+              {field: "join_name", title: "Area"},
               {field: "STE_NAME_2021", title: "State/Territory"},
               {field: "driver_pct", title: "Drivers (%)", format: ".1f"},
               {field: "wfh_pct_2021", title: "WFH (%)", format: ".1f"}
@@ -176,7 +182,7 @@
           }
         },
         {
-          data: {url: steURL, format: {type: "topojson", feature: "states"}}, // <-- change if object name differs
+          data: {url: steURL, format: {type: "topojson", feature: "STE_2021_AUST_GDA2020"}},
           mark: {type: "geoshape", fill: null, stroke: "#475569", strokeWidth: 0.6}
         }
       ],
@@ -189,13 +195,13 @@
       const warn = document.createElement("div");
       warn.className = "muted";
       warn.style.marginTop = "8px";
-      warn.textContent = "Could not load the Australia-wide map. Check that the dataset URLs and TopoJSON feature names are correct.";
+      warn.textContent = "Could not load the Australia-wide map. Check dataset URLs and TopoJSON object names.";
       el.appendChild(warn);
     });
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map Script (unchanged core) ===== -->
+  <!-- ===== Greater Melbourne D3 Map Script (your existing map) ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -359,7 +365,7 @@
     (function(){
       const container = document.getElementById('slopeChart');
       const measured = container.clientWidth || container.getBoundingClientRect().width || 900;
-      const w = Math.min(560, Math.max(320, measured)); // keep gap small
+      const w = Math.min(560, Math.max(320, measured));
 
       const slopeSpec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
