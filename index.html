@@ -96,6 +96,7 @@
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
     const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";
     const centUrl = "lga_centroids.csv";
+
     const MODE_ALIASES = new Map([
       ["taxi/ride-share","Taxi/Rideshare"],["taxi/ride share","Taxi/Rideshare"],
       ["car - as driver","Car driver"],["car- as driver","Car driver"],
@@ -105,6 +106,7 @@
     function normMode(s){ const raw = normName(s); return MODE_ALIASES.get(raw) || String(s); }
     function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
+
     const thresholds = [20,30,40,50,60,70,80,90];
     const colors = ["#ef4444","#3b82f6","#22c55e","#a855f7","#f59e0b","#06b6d4","#eab308","#ec4899","#0f172a"];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
@@ -140,6 +142,7 @@
 
     const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
+
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
       ? "LGA_2021_AUST_GDA2020"
       : Object.keys(topology.objects)[0];
@@ -245,44 +248,12 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (fold transform version) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (external JSON spec) ===== -->
   <script type="text/javascript">
-  const slopeSpec = {
-    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-    "description": "Slope chart showing change in transport mode proportions (2016–2021)",
-    "data": {
-      "url": "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/proportion_transportation_slopchart.csv"
-    },
-    "transform": [
-      {
-        "fold": ["prop_2016_pct", "prop_2021_pct"],
-        "as": ["Year", "Proportion"]
-      },
-      {
-        "calculate": "datum.Year == 'prop_2016_pct' ? '2016' : '2021'",
-        "as": "Year"
-      }
-    ],
-    "mark": { "type": "line", "point": true, "strokeWidth": 3 },
-    "encoding": {
-      "x": { "field": "Year", "type": "ordinal", "axis": {"title": "Year"} },
-      "y": { "field": "Proportion", "type": "quantitative", "axis": {"title": "Proportion (%)"} },
-      "color": { "field": "mode", "type": "nominal", "legend": {"title": "Mode of Transport"} },
-      "tooltip": [
-        {"field": "mode", "title": "Mode"},
-        {"field": "Year", "title": "Year"},
-        {"field": "Proportion", "title": "Proportion (%)", "format": ".1f"}
-      ]
-    },
-    "width": "container",
-    "height": 400,
-    "config": {
-      "axis": { "labelFontSize": 12, "titleFontSize": 13 },
-      "legend": { "labelFontSize": 12, "titleFontSize": 13 },
-      "line": { "interpolate": "monotone" }
-    }
-  };
-  vegaEmbed('#slopeChart', slopeSpec).catch(console.error);
+    vegaEmbed(
+      '#slopeChart',
+      'https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/visualization.vl.json'
+    ).catch(console.error);
   </script>
 </body>
 </html>
