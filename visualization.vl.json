@@ -6,18 +6,25 @@
   },
   "transform": [
     {"fold": ["prop_2016_pct", "prop_2021_pct"], "as": ["Year", "Proportion"]},
-    {
-      "calculate": "datum.Year == 'prop_2016_pct' ? '2016' : '2021'",
-      "as": "Year"
-    }
+    {"calculate": "datum.Year == 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"}
   ],
   "mark": {"type": "line", "point": true, "strokeWidth": 3},
   "encoding": {
-    "x": {"field": "Year", "type": "ordinal", "axis": {"title": "Year"}},
+    "x": {
+      "field": "Year",
+      "type": "ordinal",
+      "sort": ["2016", "2021"],
+      "axis": {"title": "Year", "labelAngle": 0},
+      "scale": {"padding": 0.05}
+    },
     "y": {
       "field": "Proportion",
       "type": "quantitative",
-      "axis": {"title": "Proportion (%)"}
+      "axis": {
+        "title": "Proportion (%)",
+        "values": [0,10,20,30,40,50,60,70]
+      },
+      "scale": {"domain": [0,70], "nice": false}
     },
     "color": {
       "field": "mode",
@@ -31,7 +38,7 @@
     ]
   },
   "width": "container",
-  "height": 400,
+  "height": 320,
   "config": {
     "axis": {"labelFontSize": 12, "titleFontSize": 13},
     "legend": {"labelFontSize": 12, "titleFontSize": 13},
