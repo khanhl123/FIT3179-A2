@@ -42,7 +42,7 @@
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
-    /* AUS map radio bindings */
+    /* Style the Vega-Lite radio bindings for the AUS map */
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
       padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
@@ -52,8 +52,10 @@
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
-    /* STACK the “Why the commute looks like this” charts */
-    .two-grid{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+    /* NEW: two-up layout for the “Why the commute looks like this” section */
+    .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
+    @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
+    /* Reserve some space so you notice if data fails */
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
 
@@ -80,7 +82,7 @@
   <div class="wrap">
     <div class="grid">
 
-      <!-- ===== Australia-wide (States) Map ===== -->
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — TOP SECTION ===== -->
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
@@ -90,26 +92,39 @@
           </p>
 
           <div class="map-grid map-grid--notes-left">
+            <!-- Notes FIRST (left) -->
             <aside class="side-notes">
               <h3>What the map shows</h3>
-              <p>NSW and Victoria have higher WFH, while WA and QLD are more car-dependent.</p>
+              <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
+                 <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), pulling down their driving rates.</p>
+              <p>Further north and west, the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
+                 <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
+              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
+              <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
             </aside>
+
+            <!-- Map SECOND (right) -->
             <div id="ausMap"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== Why the commute looks like this ===== -->
+      <!-- ===== NEW SECTION: Why the commute looks like this ===== -->
       <section class="card">
         <div class="pad">
           <h2>Why the commute looks like this</h2>
-          <p class="muted">Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more <strong>cross-city trips</strong>.</p>
+        <p class="muted">
+          Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more
+          <strong>cross-city trips</strong>. The charts below show the pattern for 2021: left ranks cities by local-work share;
+          right shows the national distribution of commute times.
+        </p>
 
           <div class="two-grid">
             <div>
               <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
               <div id="cityLocalWork"></div>
             </div>
+
             <div>
               <h3 style="margin:8px 0 6px">Commute time distribution — Australia (2021)</h3>
               <div id="nationalCommuteTime"></div>
@@ -135,14 +150,18 @@
           </div>
           <div class="muted">
             Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
+            <strong>Story:</strong> Inner-Melbourne swings from strong train/tram in 2016 to much higher working-from-home and lower PT in 2021,
+            while outer suburbs remain more car-reliant.
           </div>
-          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code>.</div>
+          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
           <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
         <div class="pad">
           <p class="muted" style="margin-top:8px">
-            Central municipalities gained WFH; outer suburbs stayed more car-reliant.
+            This view highlights how the pandemic reshaped the commute: <strong>central municipalities</strong> gained much more
+            <strong>work-from-home</strong>, shrinking public transport shares, whereas <strong>middle and outer suburbs</strong> kept a stronger
+            <strong>car-driver</strong> profile. The map lets you trace which areas changed the most for each mode.
           </p>
         </div>
       </section>
@@ -156,7 +175,11 @@
             <div id="slopeChart"></div>
             <aside class="side-notes">
               <h3>What stands out</h3>
-              <p>Cars stayed dominant but dipped; WFH jumped; PT contracted.</p>
+              <p>Australia moved from <strong>shared seats</strong> to <strong>screens and steering wheels</strong>.</p>
+              <p><strong>Car, as driver</strong> stayed dominant but dipped from ~<strong>62%</strong> (2016) to ~<strong>53%</strong> (2021).</p>
+              <p><strong>Working from home</strong> jumped from ~<strong>5%</strong> to ~<strong>21%</strong>, the defining shift of the period.</p>
+              <p><strong>Public transport</strong> contracted sharply—train and bus both roughly halved—while walking, cycling and car-passenger edged down.</p>
+              <p>Together, the lines show a pivot away from shared modes toward <strong>home-based work</strong> and—when travel was required—<strong>private cars</strong>.</p>
             </aside>
           </div>
         </div>
@@ -447,9 +470,10 @@
     })();
   </script>
 
-  <!-- ===== Small charts ===== -->
+  <!-- ===== Two small charts (local work by city, and national commute time) ===== -->
   <script>
   (function(){
+    // Use GitHub Pages URLs (same origin)
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
     const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
@@ -463,11 +487,11 @@
       el.appendChild(warn);
     }
 
-    /* A) Bars — % working locally by city */
+    // Chart A: Ranked bars — % working locally by city
     const localSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlLocal, format: { type: "csv" } },
-      width: "container",
+      width: 520,
       height: { step: 26 },
       transform: [{ calculate: "datum.city_type", as: "City type" }],
       layer: [
@@ -475,7 +499,10 @@
           mark: { type: "bar", cornerRadiusEnd: 4 },
           encoding: {
             y: { field: "city", type: "nominal", sort: "-x", title: null },
-            x: { field: "pct_work_locally", type: "quantitative", title: "Work locally (%)", scale: { domain: [0, 100] } },
+            x: {
+              field: "pct_work_locally", type: "quantitative",
+              title: "Work locally (%)", scale: { domain: [0, 100] }
+            },
             color: {
               field: "City type", type: "nominal",
               scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
@@ -500,11 +527,11 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    /* B) LINE — national commute-time distribution (counts -> % share) */
+    /* Chart B: LINE — national commute-time distribution (from counts -> % share) */
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlTime, format: { type: "csv" } },
-      width: "container",
+      width: 520,
       height: 220,
       transform: [
         { calculate: "(datum.time_bin || datum.bin || datum.minutes || datum.Time || datum.category || datum.Category)", as: "BinLabel" },
@@ -528,8 +555,10 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(err => showError('local', err));
-    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(err => showError('time', err));
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false})
+      .catch(err => showError('local', err));
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false})
+      .catch(err => showError('time', err));
   })();
   </script>
 </body>
