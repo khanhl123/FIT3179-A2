@@ -55,6 +55,8 @@
     /* NEW: two-up layout for the “Why the commute looks like this” section */
     .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
+    /* Reserve some space so you notice if data fails */
+    #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
 
   <!-- D3 + TopoJSON -->
@@ -468,21 +470,30 @@
     })();
   </script>
 
-  <!-- ===== NEW: Two small charts (local work by city, and national commute time) ===== -->
+  <!-- ===== Two small charts (local work by city, and national commute time) ===== -->
   <script>
   (function(){
-    const urlLocal = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/work_locally_by_city_2021.csv";
-    const urlTime  = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/commute_time_distribution_2021.csv";
+    // Use GitHub Pages URLs (same origin)
+    const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
+    const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
+
+    function showError(where, err){
+      console.error(where, err);
+      const el = document.querySelector(where === 'local' ? '#cityLocalWork' : '#nationalCommuteTime');
+      const warn = document.createElement('div');
+      warn.className = 'muted';
+      warn.style.marginTop = '8px';
+      warn.textContent = 'Could not load data. Check the CSV file path and that the file is public.';
+      el.appendChild(warn);
+    }
 
     // Chart A: Ranked bars — % working locally by city
     const localSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-      data: { url: urlLocal },
-      width: "container",
+      data: { url: urlLocal, format: { type: "csv" } },
+      width: 520,
       height: { step: 26 },
-      transform: [
-        { calculate: "datum.city_type", as: "City type" }
-      ],
+      transform: [{ calculate: "datum.city_type", as: "City type" }],
       layer: [
         {
           mark: { type: "bar", cornerRadiusEnd: 4 },
@@ -519,12 +530,10 @@
     // Chart B: Single normalized stacked bar — national commute-time distribution
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-      data: { url: urlTime },
-      width: "container",
-      height: 120,
-      transform: [
-        { calculate: "'Australia'", as: "region" }
-      ],
+      data: { url: urlTime, format: { type: "csv" } },
+      width: 520,
+      height: 140,
+      transform: [{ calculate: "'Australia'", as: "region" }],
       mark: { type: "bar" },
       encoding: {
         y: { field: "region", type: "nominal", title: null, axis: { labels: false, ticks: false } },
@@ -546,8 +555,10 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 }, legend: { columns: 3 } }
     };
 
-    vegaEmbed("#cityLocalWork", localSpec, {actions:false});
-    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false});
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false})
+      .catch(err => showError('local', err));
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false})
+      .catch(err => showError('time', err));
   })();
   </script>
 </body>
