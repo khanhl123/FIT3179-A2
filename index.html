@@ -9,6 +9,7 @@
     header{padding:28px 20px;text-align:center;}
     h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
     .subtitle{margin-top:6px;color:#64748b;font-size:14px}
+    .intro{max-width:900px;margin:10px auto 0;color:#334155;line-height:1.55;font-size:15px}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
     .grid{display:grid;grid-template-columns:1fr;gap:20px}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
@@ -65,6 +66,11 @@
   <header>
     <h1>How Australians got to work?</h1>
     <div class="subtitle">Australia-wide overview (capitals) + Greater Melbourne detail | 2016–2021</div>
+    <p class="intro">
+      <strong>Australia’s commute flipped between 2016 and 2021.</strong> Driving remained the single most common way to get to work, but it eased back as
+      <strong>working from home</strong> took off. Public transport use fell markedly, and the balance of trips shifted toward
+      <strong>home offices</strong> and, where travel was needed, <strong>private cars</strong>.
+    </p>
   </header>
 
   <div class="wrap">
@@ -85,14 +91,20 @@
               Labels
             </label>
           </div>
-          <div class="muted">Dot size = share (%). Colour = binned percentage. Grey = no value for that Area+mode+year.</div>
+          <div class="muted">
+            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
+            <strong>Story:</strong> Inner-Melbourne swings from strong train/tram in 2016 to much higher working-from-home and lower PT in 2021,
+            while outer suburbs remain more car-reliant.
+          </div>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
           <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
         <div class="pad">
           <p class="muted" style="margin-top:8px">
-            This interactive map shows, for each Greater Melbourne area, the proportion of employed residents using the selected travel mode—including working from home—in 2016 and 2021.
+            This view highlights how the pandemic reshaped the commute: <strong>central municipalities</strong> gained much more
+            <strong>work-from-home</strong>, shrinking public transport shares, whereas <strong>middle and outer suburbs</strong> kept a stronger
+            <strong>car-driver</strong> profile. The map lets you trace which areas changed the most for each mode.
           </p>
         </div>
       </section>
@@ -106,16 +118,17 @@
             <div id="slopeChart"></div>
             <aside class="side-notes">
               <h3>What stands out</h3>
-              <p>Commuting by car as a driver stayed dominant but fell from about <strong>62%</strong> in 2016 to <strong>53%</strong> in 2021.</p>
-              <p>The biggest shift was <strong>working from home</strong>, which jumped from ~<strong>5%</strong> to ~<strong>21%</strong>, reflecting pandemic-era changes.</p>
-              <p><strong>Public transport</strong> contracted sharply—train dropped from ~<strong>7.2%</strong> to ~<strong>2.5%</strong>, bus from ~<strong>3.5%</strong> to ~<strong>1.8%</strong>, with tram/light rail also declining—while walking, cycling, and car-passenger all edged down.</p>
-              <p>Overall, the slope chart shows a clear move away from shared modes toward <strong>home-based work</strong> and, to a lesser extent, private car use.</p>
+              <p>Australia moved from <strong>shared seats</strong> to <strong>screens and steering wheels</strong>.</p>
+              <p><strong>Car, as driver</strong> stayed dominant but dipped from ~<strong>62%</strong> (2016) to ~<strong>53%</strong> (2021).</p>
+              <p><strong>Working from home</strong> jumped from ~<strong>5%</strong> to ~<strong>21%</strong>, the defining shift of the period.</p>
+              <p><strong>Public transport</strong> contracted sharply—train and bus both roughly halved—while walking, cycling and car-passenger edged down.</p>
+              <p>Together, the lines show a pivot away from shared modes toward <strong>home-based work</strong> and—when travel was required—<strong>private cars</strong>.</p>
             </aside>
           </div>
         </div>
       </section>
 
-      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — MOVED TO BOTTOM, NOTES LEFT ===== -->
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — notes left, map right ===== -->
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
@@ -128,10 +141,12 @@
             <!-- Notes FIRST (left) -->
             <aside class="side-notes">
               <h3>What the map shows</h3>
-              <p>In 2021 there’s a clear east–west split: <strong>NSW</strong> and <strong>Victoria</strong> record the highest working-from-home shares after long lockdowns (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), which tempers driving rates.</p>
-              <p><strong>Queensland</strong> and <strong>Western Australia</strong> are more car-dependent, with over half of workers driving (Brisbane ~<strong>56%</strong>, Perth ~<strong>63%</strong>).</p>
-              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving, with comparatively modest WFH uptake.</p>
-              <p>Overall, private-car commuting dominates outside NSW/VIC, while WFH surges in Sydney and Melbourne reshape travel patterns there.</p>
+              <p>The geography of change matters. <strong>NSW</strong> and <strong>Victoria</strong>—after long lockdowns—post the highest
+                 <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), which pulls down their driving rates.</p>
+              <p>Further north and west the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
+                 <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
+              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
+              <p>In short, by 2021 Australians either <strong>worked from home</strong> in large numbers (especially in the east) or <strong>drove</strong>—with public transport still in recovery.</p>
             </aside>
 
             <!-- Map SECOND (right) -->
