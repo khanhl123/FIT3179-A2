@@ -34,7 +34,8 @@
 
     /* Two-column layout cards */
     .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
-    .map-grid{display:grid;grid-template-columns:minmax(420px,1fr) 360px;gap:16px;align-items:start}
+    .map-grid{display:grid;gap:16px;align-items:start}
+    .map-grid--notes-left{grid-template-columns:360px minmax(420px,1fr);}
     .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
     .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
     .side-notes p{margin:0 0 10px}
@@ -68,29 +69,6 @@
 
   <div class="wrap">
     <div class="grid">
-
-      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) ===== -->
-      <section class="card">
-        <div class="pad">
-          <h2>Driving to work vs Working from home (2021)</h2>
-          <p class="muted">
-            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
-            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
-          </p>
-
-          <div class="map-grid">
-            <div id="ausMap"></div>
-
-            <aside class="side-notes">
-              <h3>What the map shows</h3>
-              <p>In 2021 there’s a clear east–west split: <strong>NSW</strong> and <strong>Victoria</strong> record the highest working-from-home shares after long lockdowns (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), which tempers driving rates.</p>
-              <p><strong>Queensland</strong> and <strong>Western Australia</strong> are more car-dependent, with over half of workers driving (Brisbane ~<strong>56%</strong>, Perth ~<strong>63%</strong>).</p>
-              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving, with comparatively modest WFH uptake.</p>
-              <p>Overall, private-car commuting dominates outside NSW/VIC, while WFH surges in Sydney and Melbourne reshape travel patterns there.</p>
-            </aside>
-          </div>
-        </div>
-      </section>
 
       <!-- ===== Greater Melbourne — Dot map by mode & year ===== -->
       <section class="card">
@@ -137,6 +115,31 @@
         </div>
       </section>
 
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — MOVED TO BOTTOM, NOTES LEFT ===== -->
+      <section class="card">
+        <div class="pad">
+          <h2>Driving to work vs Working from home (2021)</h2>
+          <p class="muted">
+            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
+            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
+          </p>
+
+          <div class="map-grid map-grid--notes-left">
+            <!-- Notes FIRST (left) -->
+            <aside class="side-notes">
+              <h3>What the map shows</h3>
+              <p>In 2021 there’s a clear east–west split: <strong>NSW</strong> and <strong>Victoria</strong> record the highest working-from-home shares after long lockdowns (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), which tempers driving rates.</p>
+              <p><strong>Queensland</strong> and <strong>Western Australia</strong> are more car-dependent, with over half of workers driving (Brisbane ~<strong>56%</strong>, Perth ~<strong>63%</strong>).</p>
+              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving, with comparatively modest WFH uptake.</p>
+              <p>Overall, private-car commuting dominates outside NSW/VIC, while WFH surges in Sydney and Melbourne reshape travel patterns there.</p>
+            </aside>
+
+            <!-- Map SECOND (right) -->
+            <div id="ausMap"></div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 
@@ -149,8 +152,8 @@
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
-      height: 420,                       // tidy size
-      projection: { type: "equalEarth" },// upright, low-distortion orientation
+      height: 420,
+      projection: { type: "equalEarth" },
 
       params: [
         {
@@ -166,7 +169,6 @@
       ],
 
       layer: [
-        /* STATES filled by chosen metric (join via STE_NAME_2021) */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           transform: [
@@ -197,7 +199,6 @@
             ]
           }
         },
-        /* Borders on top */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
