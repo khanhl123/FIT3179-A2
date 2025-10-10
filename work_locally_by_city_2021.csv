@@ -1,1 +1,13 @@
-
+city,pct_work_locally,city_type
+Darwin,44.5,Capital
+Hobart,42.4,Capital
+Sydney,32.6,Capital
+Melbourne,30.5,Capital
+Perth,30.0,Capital
+Canberra,29.0,Capital
+Brisbane,28.2,Capital
+Adelaide,26.8,Capital
+Townsville,92.3,Regional
+Ballarat,85.1,Regional
+Launceston,81.4,Regional
+Cairns,67.2,Regional
