@@ -73,7 +73,10 @@
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
-          <p class="muted">Use the toggle to switch the colour metric. Hover for exact values. (ACT has no “Rest of State”.)</p>
+          <p class="muted">
+            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
+            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
+          </p>
 
           <div class="map-grid">
             <div id="ausMap"></div>
@@ -137,7 +140,7 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (state choropleth) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (state choropleth; fixed tooltip & projection) ===== -->
   <script>
   (function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
@@ -147,7 +150,9 @@
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 520,
-      projection: { type: "equalEarth" },  // fits to states layer
+
+      /* Australia-friendly projection to reduce distortion */
+      projection: { type: "conicEqualArea", center: [134, -25], parallels: [-18, -36], scale: 1300 },
 
       params: [
         {
@@ -168,12 +173,15 @@
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           transform: [
             { calculate: "datum.properties['STE_NAME_2021']", as: "state_name" },
+
+            /* Join CSV */
             { lookup: "state_name",
               from: { data: {url: csvURL}, key: "STE_NAME_2021",
                       fields: ["driver_pct","wfh_pct_2021"] } },
-            { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" },
-            { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_title" },
-            { calculate: "format(datum.metric_value, '.1f') + '%'", as: "metric_text" }
+
+            /* Precompute fields to avoid [object Object] in tooltips */
+            { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
+            { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
           ],
           mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.8 },
           encoding: {
@@ -190,10 +198,12 @@
             },
             tooltip: [
               { field: "state_name", title: "State/Territory" },
-              { field: "metric_text", title: { expr: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'" } }
+              { field: "metric_name", title: "Metric" },
+              { field: "metric_value", title: "Proportion (%)", format: ".1f" }
             ]
           }
         },
+
         /* Borders on top */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
