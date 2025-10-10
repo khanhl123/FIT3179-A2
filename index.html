@@ -465,93 +465,121 @@
     })();
   </script>
 
-  <!-- ===== Two small charts (local work by city, and national commute time as LINE) ===== -->
+  <!-- ===== Robust small charts (local work by city; national commute time LINE) ===== -->
   <script>
   (function(){
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
     const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
-    function showErr(where, err){
-      console.error(where, err);
-      const el = document.querySelector(where === 'local' ? '#cityLocalWork' : '#nationalCommuteTime');
+    function showErr(targetSel, err){
+      console.error('Vega error:', err);
+      const el = document.querySelector(targetSel);
       const warn = document.createElement('div');
       warn.className = 'muted'; warn.style.marginTop = '8px';
       warn.textContent = 'Could not load data. Check the CSV path and that the file is public.';
       el.appendChild(warn);
     }
 
-    // A) Ranked bars — % working locally by city
+    /* A) Ranked bars — % working locally by city (tolerant to column names) */
     const localSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlLocal, format: { type: "csv" } },
       width: "container",
       height: { step: 26 },
-      transform: [{ calculate: "datum.city_type", as: "City type" }],
+      transform: [
+        /* Normalise field names */
+        { calculate: "(datum.city ?? datum.City ?? datum['City'])", as: "City" },
+        {
+          calculate:
+            "datum.city_type != null ? datum.city_type : " +
+            "(datum.CityType != null ? datum.CityType : " +
+            "(indexof(['Sydney','Melbourne','Brisbane','Perth','Adelaide','Hobart','Darwin','Canberra'], (datum.city ?? datum.City ?? '')) >= 0 ? 'Capital' : 'Regional'))",
+          as: "CityType"
+        },
+        {
+          calculate:
+            "(datum.pct_work_locally != null ? toNumber(datum.pct_work_locally) : " +
+            "(datum['work_locally_pct'] != null ? toNumber(datum['work_locally_pct']) : " +
+            "(datum.percent != null ? toNumber(datum.percent) : " +
+            "(datum.pct != null ? toNumber(datum.pct) : " +
+            "(datum.share != null ? toNumber(datum.share) : toNumber(datum.value))))))",
+          as: "LocalPct"
+        }
+      ],
       layer: [
         {
           mark: { type: "bar", cornerRadiusEnd: 4 },
           encoding: {
-            y: { field: "city", type: "nominal", sort: "-x", title: null },
+            y: { field: "City", type: "nominal", sort: "-x", title: null },
             x: {
-              field: "pct_work_locally", type: "quantitative",
+              field: "LocalPct", type: "quantitative",
               title: "Work locally (%)", scale: { domain: [0, 100] }
             },
             color: {
-              field: "City type", type: "nominal",
+              field: "CityType", type: "nominal",
               scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
               legend: { title: "City type" }
             },
             tooltip: [
-              { field: "city", title: "City" },
-              { field: "City type" },
-              { field: "pct_work_locally", title: "Work locally (%)", format: ".1f" }
+              { field: "City", title: "City" },
+              { field: "CityType", title: "City type" },
+              { field: "LocalPct", title: "Work locally (%)", format: ".1f" }
             ]
           }
         },
         {
           mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
           encoding: {
-            y: { field: "city", type: "nominal", sort: "-x" },
-            x: { field: "pct_work_locally", type: "quantitative" },
-            text: { field: "pct_work_locally", type: "quantitative", format: ".1f" }
+            y: { field: "City", type: "nominal", sort: "-x" },
+            x: { field: "LocalPct", type: "quantitative" },
+            text: { field: "LocalPct", type: "quantitative", format: ".1f" }
           }
         }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    // B) LINE chart — national commute-time distribution
+    /* B) LINE chart — national commute-time distribution (robust to headers) */
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlTime, format: { type: "csv" } },
       width: "container",
       height: 230,
       transform: [
-        { joinaggregate: [{ op: "sum", field: "commuters", as: "total" }] },
-        { calculate: "datum.commuters / datum.total * 100", as: "sharePct" }
+        { calculate: "(datum.time_bin ?? datum.bin ?? datum.minutes ?? datum.category)", as: "BinLabel" },
+        { calculate: "toNumber(parseInt(datum.BinLabel))", as: "BinNum" },
+        {
+          calculate:
+            "(datum.commuters != null ? toNumber(datum.commuters) : " +
+            "(datum.count != null ? toNumber(datum.count) : toNumber(datum.total)))",
+          as: "Commuters"
+        },
+        { joinaggregate: [{ op: "sum", field: "Commuters", as: "AllCommuters" }] },
+        { calculate: "datum.Commuters / datum.AllCommuters * 100", as: "SharePct" }
       ],
       mark: { type: "line", point: true, interpolate: "monotone", color: "#2563eb" },
       encoding: {
         x: {
-          field: "time_bin", type: "ordinal",
-          sort: ["5","15","25","35","45","55","60+"],
+          field: "BinLabel", type: "ordinal",
+          sort: {"field":"BinNum","order":"ascending"},
           title: "Commute time (minutes)"
         },
         y: {
-          field: "sharePct", type: "quantitative",
+          field: "SharePct", type: "quantitative",
           title: "Share of commuters (%)", scale: { domain: [0, 100] }
         },
+        order: { field: "BinNum", type: "quantitative" },
         tooltip: [
-          { field: "time_bin", title: "Time (min)" },
-          { field: "sharePct", title: "Share (%)", format: ".1f" },
-          { field: "commuters", title: "Commuters", format: "," }
+          { field: "BinLabel", title: "Time" },
+          { field: "SharePct", title: "Share (%)", format: ".1f" },
+          { field: "Commuters", title: "Commuters", format: "," }
         ]
       },
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(err => showErr('local', err));
-    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(err => showErr('time', err));
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(() => showErr('#cityLocalWork'));
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(() => showErr('#nationalCommuteTime'));
   })();
   </script>
 </body>
