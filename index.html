@@ -140,7 +140,7 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (state choropleth; fixed tooltip & projection) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (state choropleth; fixed tooltip & smaller size) ===== -->
   <script>
   (function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
@@ -149,10 +149,12 @@
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
-      height: 520,
-
-      /* Australia-friendly projection to reduce distortion */
-      projection: { type: "conicEqualArea", center: [134, -25], parallels: [-18, -36], scale: 1300 },
+      height: 420,                       // smaller map
+      projection: {
+        type: "conicEqualArea",
+        center: [134, -25],
+        parallels: [-18, -36]           // no fixed scale => auto-fit
+      },
 
       params: [
         {
@@ -173,13 +175,9 @@
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
           transform: [
             { calculate: "datum.properties['STE_NAME_2021']", as: "state_name" },
-
-            /* Join CSV */
             { lookup: "state_name",
               from: { data: {url: csvURL}, key: "STE_NAME_2021",
                       fields: ["driver_pct","wfh_pct_2021"] } },
-
-            /* Precompute fields to avoid [object Object] in tooltips */
             { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
             { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
           ],
@@ -203,7 +201,6 @@
             ]
           }
         },
-
         /* Borders on top */
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
