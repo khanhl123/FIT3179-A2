@@ -42,7 +42,7 @@
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
-    /* Style the Vega-Lite radio bindings for the AUS map */
+    /* AUS map radio bindings */
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
       padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
@@ -52,10 +52,8 @@
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
-    /* NEW: two-up layout for the “Why the commute looks like this” section */
-    .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
-    @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
-    /* Reserve some space so you notice if data fails */
+    /* “Why the commute looks like this” stacked layout */
+    .stack-col{display:flex; flex-direction:column; gap:16px}
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
 
@@ -82,7 +80,7 @@
   <div class="wrap">
     <div class="grid">
 
-      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — TOP SECTION ===== -->
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) ===== -->
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
@@ -92,7 +90,6 @@
           </p>
 
           <div class="map-grid map-grid--notes-left">
-            <!-- Notes FIRST (left) -->
             <aside class="side-notes">
               <h3>What the map shows</h3>
               <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
@@ -103,23 +100,21 @@
               <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
             </aside>
 
-            <!-- Map SECOND (right) -->
             <div id="ausMap"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== NEW SECTION: Why the commute looks like this ===== -->
+      <!-- ===== Why the commute looks like this (stacked) ===== -->
       <section class="card">
         <div class="pad">
           <h2>Why the commute looks like this</h2>
           <p class="muted">
             Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more
-            <strong>cross-city trips</strong>. The charts below show the pattern for 2021: left ranks cities by local-work share;
-            right shows the national distribution of commute times.
+            <strong>cross-city trips</strong>. The charts below show the pattern for 2021.
           </p>
 
-          <div class="two-grid">
+          <div class="stack-col">
             <div>
               <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
               <div id="cityLocalWork"></div>
@@ -470,28 +465,26 @@
     })();
   </script>
 
-  <!-- ===== Two small charts (local work by city, and national commute time) ===== -->
+  <!-- ===== Two small charts (local work by city, and national commute time as LINE) ===== -->
   <script>
   (function(){
-    // Use GitHub Pages URLs (same origin)
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
     const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
-    function showError(where, err){
+    function showErr(where, err){
       console.error(where, err);
       const el = document.querySelector(where === 'local' ? '#cityLocalWork' : '#nationalCommuteTime');
       const warn = document.createElement('div');
-      warn.className = 'muted';
-      warn.style.marginTop = '8px';
-      warn.textContent = 'Could not load data. Check the CSV file path and that the file is public.';
+      warn.className = 'muted'; warn.style.marginTop = '8px';
+      warn.textContent = 'Could not load data. Check the CSV path and that the file is public.';
       el.appendChild(warn);
     }
 
-    // Chart A: Ranked bars — % working locally by city
+    // A) Ranked bars — % working locally by city
     const localSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlLocal, format: { type: "csv" } },
-      width: 520,
+      width: "container",
       height: { step: 26 },
       transform: [{ calculate: "datum.city_type", as: "City type" }],
       layer: [
@@ -527,38 +520,38 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    // Chart B: Single normalized stacked bar — national commute-time distribution
+    // B) LINE chart — national commute-time distribution
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlTime, format: { type: "csv" } },
-      width: 520,
-      height: 140,
-      transform: [{ calculate: "'Australia'", as: "region" }],
-      mark: { type: "bar" },
+      width: "container",
+      height: 230,
+      transform: [
+        { joinaggregate: [{ op: "sum", field: "commuters", as: "total" }] },
+        { calculate: "datum.commuters / datum.total * 100", as: "sharePct" }
+      ],
+      mark: { type: "line", point: true, interpolate: "monotone", color: "#2563eb" },
       encoding: {
-        y: { field: "region", type: "nominal", title: null, axis: { labels: false, ticks: false } },
         x: {
-          field: "commuters", type: "quantitative", stack: "normalize",
-          axis: { title: "Commute time (share of commuters)", format: "%" }
-        },
-        color: {
-          field: "time_bin", type: "nominal", title: "Time (min)",
+          field: "time_bin", type: "ordinal",
           sort: ["5","15","25","35","45","55","60+"],
-          scale: { range: ["#e0f2fe","#bfdbfe","#93c5fd","#60a5fa","#3b82f6","#2563eb","#1d4ed8"] }
+          title: "Commute time (minutes)"
+        },
+        y: {
+          field: "sharePct", type: "quantitative",
+          title: "Share of commuters (%)", scale: { domain: [0, 100] }
         },
         tooltip: [
           { field: "time_bin", title: "Time (min)" },
-          { field: "commuters", title: "Commuters", format: "," },
-          { field: "share", title: "Share (%)", format: ".1f" }
+          { field: "sharePct", title: "Share (%)", format: ".1f" },
+          { field: "commuters", title: "Commuters", format: "," }
         ]
       },
-      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 }, legend: { columns: 3 } }
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    vegaEmbed("#cityLocalWork", localSpec, {actions:false})
-      .catch(err => showError('local', err));
-    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false})
-      .catch(err => showError('time', err));
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(err => showErr('local', err));
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(err => showErr('time', err));
   })();
   </script>
 </body>
