@@ -113,11 +113,11 @@
       <section class="card">
         <div class="pad">
           <h2>Why the commute looks like this</h2>
-          <p class="muted">
-            Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more
-            <strong>cross-city trips</strong>. The charts below show the pattern for 2021: left ranks cities by local-work share;
-            right shows the national distribution of commute times.
-          </p>
+        <p class="muted">
+          Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more
+          <strong>cross-city trips</strong>. The charts below show the pattern for 2021: left ranks cities by local-work share;
+          right shows the national distribution of commute times.
+        </p>
 
           <div class="two-grid">
             <div>
@@ -527,32 +527,32 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    // Chart B: Single normalized stacked bar — national commute-time distribution
+    /* Chart B: LINE — national commute-time distribution (from counts -> % share) */
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlTime, format: { type: "csv" } },
       width: 520,
-      height: 140,
-      transform: [{ calculate: "'Australia'", as: "region" }],
-      mark: { type: "bar" },
+      height: 220,
+      transform: [
+        { calculate: "(datum.time_bin || datum.bin || datum.minutes || datum.Time || datum.category || datum.Category)", as: "BinLabel" },
+        { calculate: "parseInt(datum.BinLabel)", as: "BinNum" },
+        { calculate: "toNumber(replace((datum.commuters || datum.count || datum.Count || datum.total || datum.Total || ''), ',',''))", as: "Commuters" },
+        { filter: "isValid(datum.BinLabel) && isValid(datum.Commuters)" },
+        { joinaggregate: [{ op: "sum", field: "Commuters", as: "AllCommuters" }] },
+        { calculate: "datum.Commuters / datum.AllCommuters * 100", as: "SharePct" }
+      ],
+      mark: { type: "line", point: true, interpolate: "monotone" },
       encoding: {
-        y: { field: "region", type: "nominal", title: null, axis: { labels: false, ticks: false } },
-        x: {
-          field: "commuters", type: "quantitative", stack: "normalize",
-          axis: { title: "Commute time (share of commuters)", format: "%" }
-        },
-        color: {
-          field: "time_bin", type: "nominal", title: "Time (min)",
-          sort: ["5","15","25","35","45","55","60+"],
-          scale: { range: ["#e0f2fe","#bfdbfe","#93c5fd","#60a5fa","#3b82f6","#2563eb","#1d4ed8"] }
-        },
+        x: { field: "BinLabel", type: "ordinal", sort: {"field":"BinNum","order":"ascending"}, title: "Commute time (minutes)" },
+        y: { field: "SharePct", type: "quantitative", title: "Share of commuters (%)", scale: { domain: [0, 100] } },
+        order: { field: "BinNum", type: "quantitative" },
         tooltip: [
-          { field: "time_bin", title: "Time (min)" },
-          { field: "commuters", title: "Commuters", format: "," },
-          { field: "share", title: "Share (%)", format: ".1f" }
+          { field: "BinLabel", title: "Time" },
+          { field: "SharePct", title: "Share (%)", format: ".1f" },
+          { field: "Commuters", title: "Commuters", format: "," }
         ]
       },
-      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 }, legend: { columns: 3 } }
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
     vegaEmbed("#cityLocalWork", localSpec, {actions:false})
