@@ -51,6 +51,10 @@
     #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
+
+    /* NEW: two-up layout for the “Why the commute looks like this” section */
+    .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
+    @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
   </style>
 
   <!-- D3 + TopoJSON -->
@@ -103,6 +107,30 @@
         </div>
       </section>
 
+      <!-- ===== NEW SECTION: Why the commute looks like this ===== -->
+      <section class="card">
+        <div class="pad">
+          <h2>Why the commute looks like this</h2>
+          <p class="muted">
+            Cities with more people who <strong>work locally</strong> tend to have shorter commutes; big capitals push more
+            <strong>cross-city trips</strong>. The charts below show the pattern for 2021: left ranks cities by local-work share;
+            right shows the national distribution of commute times.
+          </p>
+
+          <div class="two-grid">
+            <div>
+              <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
+              <div id="cityLocalWork"></div>
+            </div>
+
+            <div>
+              <h3 style="margin:8px 0 6px">Commute time distribution — Australia (2021)</h3>
+              <div id="nationalCommuteTime"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== Greater Melbourne — Dot map by mode & year ===== -->
       <section class="card">
         <div class="pad">
@@ -140,7 +168,7 @@
       <section class="card">
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
-        <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
+          <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
             <div id="slopeChart"></div>
             <aside class="side-notes">
@@ -438,6 +466,89 @@
           container.appendChild(warn);
         });
     })();
+  </script>
+
+  <!-- ===== NEW: Two small charts (local work by city, and national commute time) ===== -->
+  <script>
+  (function(){
+    const urlLocal = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/work_locally_by_city_2021.csv";
+    const urlTime  = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/commute_time_distribution_2021.csv";
+
+    // Chart A: Ranked bars — % working locally by city
+    const localSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      data: { url: urlLocal },
+      width: "container",
+      height: { step: 26 },
+      transform: [
+        { calculate: "datum.city_type", as: "City type" }
+      ],
+      layer: [
+        {
+          mark: { type: "bar", cornerRadiusEnd: 4 },
+          encoding: {
+            y: { field: "city", type: "nominal", sort: "-x", title: null },
+            x: {
+              field: "pct_work_locally", type: "quantitative",
+              title: "Work locally (%)", scale: { domain: [0, 100] }
+            },
+            color: {
+              field: "City type", type: "nominal",
+              scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
+              legend: { title: "City type" }
+            },
+            tooltip: [
+              { field: "city", title: "City" },
+              { field: "City type" },
+              { field: "pct_work_locally", title: "Work locally (%)", format: ".1f" }
+            ]
+          }
+        },
+        {
+          mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
+          encoding: {
+            y: { field: "city", type: "nominal", sort: "-x" },
+            x: { field: "pct_work_locally", type: "quantitative" },
+            text: { field: "pct_work_locally", type: "quantitative", format: ".1f" }
+          }
+        }
+      ],
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
+    };
+
+    // Chart B: Single normalized stacked bar — national commute-time distribution
+    const timeSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      data: { url: urlTime },
+      width: "container",
+      height: 120,
+      transform: [
+        { calculate: "'Australia'", as: "region" }
+      ],
+      mark: { type: "bar" },
+      encoding: {
+        y: { field: "region", type: "nominal", title: null, axis: { labels: false, ticks: false } },
+        x: {
+          field: "commuters", type: "quantitative", stack: "normalize",
+          axis: { title: "Commute time (share of commuters)", format: "%" }
+        },
+        color: {
+          field: "time_bin", type: "nominal", title: "Time (min)",
+          sort: ["5","15","25","35","45","55","60+"],
+          scale: { range: ["#e0f2fe","#bfdbfe","#93c5fd","#60a5fa","#3b82f6","#2563eb","#1d4ed8"] }
+        },
+        tooltip: [
+          { field: "time_bin", title: "Time (min)" },
+          { field: "commuters", title: "Commuters", format: "," },
+          { field: "share", title: "Share (%)", format: ".1f" }
+        ]
+      },
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 }, legend: { columns: 3 } }
+    };
+
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false});
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false});
+  })();
   </script>
 </body>
 </html>
