@@ -67,14 +67,41 @@
     <h1>How Australians got to work?</h1>
     <div class="subtitle">Australia-wide overview (capitals) + Greater Melbourne detail | 2016–2021</div>
     <p class="intro">
-      <strong>Australia’s commute flipped between 2016 and 2021.</strong> Driving remained the single most common way to get to work, but it eased back as
-      <strong>working from home</strong> took off. Public transport use fell markedly, and the balance of trips shifted toward
-      <strong>home offices</strong> and, where travel was needed, <strong>private cars</strong>.
+      Start with the <strong>national picture in 2021</strong>: Australians either <strong>drove to work</strong> or <strong>worked from home</strong> in large numbers.
+      Driving remained the most common choice, while WFH surged—especially in NSW and Victoria. The sections below then zoom into
+      <strong>Greater Melbourne</strong> to show how modes shifted between 2016 and 2021 and where those changes were felt most.
     </p>
   </header>
 
   <div class="wrap">
     <div class="grid">
+
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — TOP SECTION ===== -->
+      <section class="card">
+        <div class="pad">
+          <h2>Driving to work vs Working from home (2021)</h2>
+          <p class="muted">
+            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
+            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
+          </p>
+
+          <div class="map-grid map-grid--notes-left">
+            <!-- Notes FIRST (left) -->
+            <aside class="side-notes">
+              <h3>What the map shows</h3>
+              <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
+                 <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), pulling down their driving rates.</p>
+              <p>Further north and west, the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
+                 <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
+              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
+              <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
+            </aside>
+
+            <!-- Map SECOND (right) -->
+            <div id="ausMap"></div>
+          </div>
+        </div>
+      </section>
 
       <!-- ===== Greater Melbourne — Dot map by mode & year ===== -->
       <section class="card">
@@ -113,7 +140,7 @@
       <section class="card">
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
-          <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
+        <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
             <div id="slopeChart"></div>
             <aside class="side-notes">
@@ -128,48 +155,20 @@
         </div>
       </section>
 
-      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — notes left, map right ===== -->
-      <section class="card">
-        <div class="pad">
-          <h2>Driving to work vs Working from home (2021)</h2>
-          <p class="muted">
-            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
-            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
-          </p>
-
-          <div class="map-grid map-grid--notes-left">
-            <!-- Notes FIRST (left) -->
-            <aside class="side-notes">
-              <h3>What the map shows</h3>
-              <p>The geography of change matters. <strong>NSW</strong> and <strong>Victoria</strong>—after long lockdowns—post the highest
-                 <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), which pulls down their driving rates.</p>
-              <p>Further north and west the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
-                 <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
-              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
-              <p>In short, by 2021 Australians either <strong>worked from home</strong> in large numbers (especially in the east) or <strong>drove</strong>—with public transport still in recovery.</p>
-            </aside>
-
-            <!-- Map SECOND (right) -->
-            <div id="ausMap"></div>
-          </div>
-        </div>
-      </section>
-
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (upright equal-earth; fixed tooltip; smaller size) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map ===== -->
   <script>
   (function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
-    const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";    // objects.states
+    const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 420,
       projection: { type: "equalEarth" },
-
       params: [
         {
           name: "metricSel",
@@ -182,7 +181,6 @@
           }
         }
       ],
-
       layer: [
         {
           data: { url: steURL, format: { type: "topojson", feature: "states" } },
@@ -214,12 +212,9 @@
             ]
           }
         },
-        {
-          data: { url: steURL, format: { type: "topojson", feature: "states" } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
-        }
+        { data: { url: steURL, format: { type: "topojson", feature: "states" } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 } }
       ],
-
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
