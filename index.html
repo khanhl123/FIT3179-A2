@@ -83,24 +83,22 @@
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
-          <p class="muted">
-            Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
-            <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.
-          </p>
+        <p class="muted">Toggle the metric to colour each state by the <strong>proportion</strong> of workers who either
+          <em>drove to work</em> or <em>worked from home</em> in 2021. Values are percentages of employed residents.</p>
 
-          <div class="map-grid map-grid--notes-left">
-            <aside class="side-notes">
-              <h3>What the map shows</h3>
-              <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
-                 <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), pulling down their driving rates.</p>
-              <p>Further north and west, the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
-                 <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
-              <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
-              <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
-            </aside>
+        <div class="map-grid map-grid--notes-left">
+          <aside class="side-notes">
+            <h3>What the map shows</h3>
+            <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
+               <strong>working-from-home</strong> shares (Sydney ~<strong>31%</strong>, Melbourne ~<strong>26%</strong>), pulling down their driving rates.</p>
+            <p>Further north and west, the picture flips: <strong>Queensland</strong> and <strong>Western Australia</strong> are more
+               <strong>car-dependent</strong> (Brisbane ~<strong>56%</strong> driving; Perth ~<strong>63%</strong>).</p>
+            <p><strong>South Australia</strong>, <strong>Tasmania</strong> and the <strong>Northern Territory</strong> also lean toward driving with more modest WFH uptake.</p>
+            <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
+          </aside>
 
-            <div id="ausMap"></div>
-          </div>
+          <div id="ausMap"></div>
+        </div>
         </div>
       </section>
 
@@ -152,9 +150,7 @@
             while outer suburbs remain more car-reliant.
           </div>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-          <p class="muted" style="margin:6px 0 0">
-            Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.
-          </p>
+          <p class="muted" style="margin:6px 0 0">Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.</p>
           <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
@@ -189,7 +185,7 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (auto-detect TopoJSON feature; re-centered Equal Earth) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
@@ -266,7 +262,7 @@
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map (unchanged) ===== -->
+  <!-- ===== Greater Melbourne D3 Map ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -427,7 +423,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (Train = sky blue) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (Truck removed) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -442,7 +438,8 @@
           "format": {"type": "csv"}
         },
         "transform": [
-          {"filter": "indexof(['Total','Not stated','Other','Other Mode','Other mode','Did not go to work'], datum.mode) < 0"},
+          /* Exclude totals/misc + Truck */
+          {"filter": "indexof(['Total','Not stated','Other','Other Mode','Other mode','Did not go to work','Truck'], datum.mode) < 0"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
           {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
@@ -460,21 +457,20 @@
               "domain":[
                 "Worked at home","Car, as driver","Train","Bus","Tram/light rail",
                 "Walked only","Bicycle","Car, as passenger",
-                "Taxi/ride-share service","Ferry","Motorbike/scooter","Truck"
+                "Taxi/ride-share service","Ferry","Motorbike/scooter"
               ],
               "range":[
                 "#E15759", /* Worked at home */
                 "#4E79A7", /* Car, as driver */
-                "#56B4E9", /* Train (sky blue — changed) */
+                "#56B4E9", /* Train (sky blue) */
                 "#76B7B2", /* Bus (teal) */
                 "#B07AA1", /* Tram/light rail (purple) */
                 "#000000", /* Walked only */
-                "#F28E2C", /* Bicycle (orange) */
-                "#EDC948", /* Car, as passenger (yellow) */
-                "#9C755F", /* Taxi/ride-share service (brown) */
-                "#FF9DA7", /* Ferry (pink) */
-                "#BAB0AC", /* Motorbike/scooter (grey) */
-                "#17BECF"  /* Truck (cyan) */
+                "#F28E2C", /* Bicycle */
+                "#EDC948", /* Car, as passenger */
+                "#9C755F", /* Taxi/ride-share service */
+                "#FF9DA7", /* Ferry */
+                "#BAB0AC"  /* Motorbike/scooter */
               ]
             },
             "legend":{"title":"Mode of Transport"}
@@ -509,7 +505,7 @@
     })();
   </script>
 
-  <!-- ===== Two small charts (unchanged) ===== -->
+  <!-- ===== Two small charts ===== -->
   <script>
   (function(){
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
