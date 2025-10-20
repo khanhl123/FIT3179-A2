@@ -5,17 +5,47 @@
   <title>How Australians got to work?</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body{margin:0;background:#f7f9fc;color:#0f172a;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    /* ==== TYPOGRAPHY RESET (unify sizes) ==== */
+    :root{
+      --font-stack: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      --base-size: 16px;         /* one body size for all normal text */
+      --lh: 1.6;                 /* comfortable leading */
+    }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      background:#f7f9fc;
+      color:#0f172a;
+      font-family:var(--font-stack);
+      font-size:var(--base-size);
+      line-height:var(--lh);
+    }
+
+    /* Headings: allowed to differ in size */
     header{padding:28px 20px;text-align:center;}
     h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
-    .subtitle{margin-top:6px;color:#64748b;font-size:14px}
-    .intro{max-width:900px;margin:10px auto 0;color:#334155;line-height:1.55;font-size:15px}
+    /* Subheading: also allowed to differ slightly */
+    .subtitle{margin-top:6px;color:#64748b;font-size:clamp(14px,1.4vw,16px)}
+
+    /* All other text uses body size by default */
+    .intro{max-width:900px;margin:10px auto 0;color:#334155}
+    p, li, label, button, select, input, .side-notes, .legend, .vega-embed, #ausMap .vega-bindings {
+      font-size:inherit;
+      line-height:inherit;
+    }
+    /* Keep bold words bold, but DON’T change their size */
+    strong, b { font-weight:600; font-size:inherit; }
+
+    /* Layout & cards */
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
     .grid{display:grid;grid-template-columns:1fr;gap:20px}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
-    .card h2{font-size:20px;margin:0 0 12px}
-    .muted{color:#64748b;font-size:12px}
+    .card h2{font-size:clamp(22px,2.2vw,26px);margin:0 0 12px}
+
+    /* Muted helper text: same size, just lighter colour */
+    .muted{color:#64748b}
+
     .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
@@ -37,8 +67,8 @@
     .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
     .map-grid{display:grid;gap:16px;align-items:start}
     .map-grid--notes-left{grid-template-columns:360px minmax(420px,1fr);}
-    .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
-    .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
+    .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155}
+    .side-notes h3{margin:0 0 8px;font-size:clamp(18px,1.9vw,20px);color:#0f172a}
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
@@ -46,7 +76,6 @@
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
       padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
-      font-size:14px;
     }
     #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
@@ -153,7 +182,7 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-          <div class="controls">
+        <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
@@ -164,11 +193,11 @@
               Labels
             </label>
           </div>
-          <div class="muted">
+          <p class="muted">
             Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
             <strong>Story:</strong> Inner Melbourne swung from strong train/tram in 2016 to much higher <strong>working-from-home</strong> and lower public transport in 2021,
             while outer suburbs remained more car-reliant.
-          </div>
+          </p>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
           <p class="muted" style="margin:6px 0 0">
             Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.
@@ -205,13 +234,12 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (auto-detect TopoJSON feature; re-centered Equal Earth) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (Equal Earth) ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
-    // Try to detect the correct TopoJSON object name to avoid blank maps.
     let featureName = "STE_2021_AUST_GDA2020";
     try {
       const res = await fetch(steURL);
@@ -220,9 +248,7 @@
       if (objects.includes("STE_2021_AUST_GDA2020")) featureName = "STE_2021_AUST_GDA2020";
       else if (objects.includes("states")) featureName = "states";
       else if (objects.length) featureName = objects[0];
-    } catch(e) {
-      console.warn("Could not inspect TopoJSON; falling back to", featureName);
-    }
+    } catch(e) { console.warn("Could not inspect TopoJSON; falling back to", featureName); }
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -305,7 +331,7 @@
     function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    /* ---- BREAKS (0–5, 6–10, then 10-point bins up to 71–80) ---- */
+    /* BREAKS (0–5, 6–10, then 10-pt bins up to 71–80) */
     const thresholds = [5,10,20,30,40,50,60,70];
     const colors = [
       "#ef4444", "#f97316", "#f59e0b", "#84cc16",
@@ -331,7 +357,7 @@
       .forEach((lab,i) => {
         const el = document.createElement("div");
         el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span>
-                        <span style="font-size:12px;color:#475569">${lab}</span>`;
+                        <span style="color:#475569">${lab}</span>`;
         legend.appendChild(el);
       });
 
@@ -349,10 +375,9 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    /* Drop "(N)" rows */
     const rawData0 = rawDataAll.filter(d => !endsWithN(d.Area));
 
-    /* ---- EXCLUDE rows by mode ---- */
+    /* Exclude modes that aren't actual travel modes */
     const EXCLUDE = new Set([
       "total","not stated","other","other mode","did not go to work"
     ]);
@@ -390,7 +415,6 @@
       lat: hasLat ? +d.lat : NaN
     }));
 
-    /* Apply exclusions (modes) */
     data = data.filter(d => !EXCLUDE.has(normName(d.mode)));
 
     if (!hasLon || !hasLat) {
@@ -468,7 +492,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (exclusions) ===== -->
+  <!-- ===== Vega-Lite Slope Chart ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
