@@ -42,7 +42,7 @@
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
-    /* Style the Vega-Lite radio bindings for the AUS map */
+    /* Vega-Lite radio bindings style for the AUS map */
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
       padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
@@ -52,7 +52,7 @@
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
-    /* Two small charts section */
+    /* Two-up layout for “Why the commute looks like this” */
     .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
@@ -189,47 +189,47 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (Equal Earth, re-centered) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (auto-detect TopoJSON feature; re-centered Equal Earth) ===== -->
   <script>
-  (function(){
+  (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
+
+    // Try to detect the correct TopoJSON object name to avoid blank maps.
+    let featureName = "STE_2021_AUST_GDA2020";
+    try {
+      const res = await fetch(steURL);
+      const topo = await res.json();
+      const objects = (topo && topo.objects) ? Object.keys(topo.objects) : [];
+      if (objects.includes("STE_2021_AUST_GDA2020")) featureName = "STE_2021_AUST_GDA2020";
+      else if (objects.includes("states")) featureName = "states";
+      else if (objects.length) featureName = objects[0];
+    } catch(e) {
+      console.warn("Could not inspect TopoJSON; falling back to", featureName);
+    }
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 420,
-      projection: {
-        type: "equalEarth",
-        rotate: [-134, 0, 0],  // center longitude ~134°E
-        center: [0, -25],      // then center on ~25°S
-        fit: true
-      },
+      projection: { type: "equalEarth", rotate: [-134, 0, 0] },
       params: [
         {
           name: "metricSel",
           value: "driver_pct",
-          bind: {
-            input: "radio",
-            name: "Metric: ",
-            options: ["driver_pct","wfh_pct_2021"],
-            labels: ["Drivers (%)","Working from home (%)"]
-          }
+          bind: { input: "radio", name: "Metric: ",
+                  options: ["driver_pct","wfh_pct_2021"],
+                  labels: ["Drivers (%)","Working from home (%)"] }
         }
       ],
       layer: [
         {
-          data: { url: steURL, format: { type: "topojson", feature: "states" } },
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
           transform: [
-            { calculate: "datum.properties['STE_NAME_2021']", as: "state_name" },
-            {
-              lookup: "state_name",
-              from: {
-                data: { url: csvURL },
-                key: "STE_NAME_2021",
-                fields: ["driver_pct","wfh_pct_2021"]
-              }
-            },
+            { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
+            { lookup: "state_name",
+              from: { data: { url: csvURL }, key: "STE_NAME_2021",
+                      fields: ["driver_pct","wfh_pct_2021"] } },
             { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
             { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
           ],
@@ -238,8 +238,7 @@
             color: {
               condition: {
                 test: "isValid(datum.metric_value)",
-                field: "metric_value",
-                type: "quantitative",
+                field: "metric_value", type: "quantitative",
                 title: "Proportion (%)",
                 scale: { domain: [0, 80], scheme: "blues" },
                 legend: { format: ".0f" }
@@ -253,8 +252,10 @@
             ]
           }
         },
-        { data: { url: steURL, format: { type: "topojson", feature: "states" } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 } }
+        {
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
+        }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
@@ -265,7 +266,7 @@
       const warn = document.createElement("div");
       warn.className = "muted";
       warn.style.marginTop = "8px";
-      warn.textContent = "Could not load the Australia-wide map. Check dataset URLs and TopoJSON object names.";
+      warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON file (object name) and the CSV URL.";
       el.appendChild(warn);
     });
   })();
