@@ -271,7 +271,7 @@
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map (0–5, 6–10, then 10-pt bins) ===== -->
+  <!-- ===== Greater Melbourne D3 Map (unchanged) ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -289,10 +289,7 @@
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
     const thresholds = [5,10,20,30,40,50,60,70];
-    const colors = [
-      "#ef4444", "#f97316", "#f59e0b", "#84cc16",
-      "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#64748b"
-    ];
+    const colors = ["#ef4444","#f97316","#f59e0b","#84cc16","#22c55e","#06b6d4","#3b82f6","#6366f1","#64748b"];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
     function labelFor(v){
       if (!Number.isFinite(v)) return "No data";
@@ -311,8 +308,7 @@
     ["0–5%","6–10%","11–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%"]
       .forEach((lab,i) => {
         const el = document.createElement("div");
-        el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span>
-                        <span style="font-size:12px;color:#475569">${lab}</span>`;
+        el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span><span style="font-size:12px;color:#475569">${lab}</span>`;
         legend.appendChild(el);
       });
 
@@ -334,9 +330,7 @@
     const EXCLUDE = new Set(["total","not stated","other","other mode","did not go to work"]);
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
-    const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
-      ? "LGA_2021_AUST_GDA2020"
-      : Object.keys(topology.objects)[0];
+    const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020) ? "LGA_2021_AUST_GDA2020" : Object.keys(topology.objects)[0];
     const geo = topojson.feature(topology, topology.objects[objName]);
     let melb = geo;
     const sampleProps = (geo.features[0] && geo.features[0].properties) || {};
@@ -346,10 +340,8 @@
 
     const projection = d3.geoMercator().fitSize([width,height], melb);
     const path = d3.geoPath(projection);
-    gBase.append("g")
-      .selectAll("path").data(melb.features).join("path")
-      .attr("d", path).attr("fill", "#eef2ff")
-      .attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
+    gBase.append("g").selectAll("path").data(melb.features).join("path")
+      .attr("d", path).attr("fill", "#eef2ff").attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
 
     const hasLon = rawData0.length && ("lon" in rawData0[0]);
     const hasLat = rawData0.length && ("lat" in rawData0[0]);
@@ -430,10 +422,8 @@
 
       const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
       labels.join(
-        enter => enter.append("text")
-          .attr("class","label").attr("x", d => d.x + 10).attr("y", d => d.y + 3)
-          .style("opacity", 0).text(d => `${d.value.toFixed(0)}%`)
-          .transition().duration(250).style("opacity", 1),
+        enter => enter.append("text").attr("class","label").attr("x", d => d.x + 10).attr("y", d => d.y + 3)
+          .style("opacity", 0).text(d => `${d.value.toFixed(0)}%`).transition().duration(250).style("opacity", 1),
         update => update.transition().duration(250).attr("x", d => d.x + 10).attr("y", d => d.y + 3).text(d => `${d.value.toFixed(0)}%`),
         exit => exit.transition().duration(150).style("opacity",0).remove()
       );
@@ -442,7 +432,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (exclusions + colour-blind–safe palette) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (distinct colours, solid lines) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -465,38 +455,36 @@
         "params": [
           {"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}
         ],
-        "mark": {"type":"line","point":true},
+        "mark": {"type":"line","point":true},  /* all SOLID lines */
         "encoding": {
           "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
 
-          /* COLOUR-BLIND–SAFE COLOURS (Okabe–Ito), greying minor modes */
+          /* Distinct colour-blind–friendly colours (Tableau 10 + extras) */
           "color": {
             "field":"mode","type":"nominal",
             "scale":{
               "domain":[
                 "Worked at home","Car, as driver","Train","Bus","Tram/light rail",
-                "Walked only","Bicycle","Car, as passenger","Taxi/ride-share service",
-                "Ferry","Motorbike/scooter","Truck"
+                "Walked only","Bicycle","Car, as passenger",
+                "Taxi/ride-share service","Ferry","Motorbike/scooter","Truck"
               ],
               "range":[
-                "#D55E00","#0072B2","#009E73","#56B4E9","#CC79A7",
-                "#000000","#E69F00","#9AA0A6","#9AA0A6",
-                "#9AA0A6","#9AA0A6","#9AA0A6"
+                "#E15759", /* Worked at home */
+                "#4E79A7", /* Car, as driver */
+                "#59A14F", /* Train */
+                "#76B7B2", /* Bus */
+                "#B07AA1", /* Tram/light rail */
+                "#000000", /* Walked only */
+                "#F28E2C", /* Bicycle */
+                "#EDC948", /* Car, as passenger (yellow, thicker if needed) */
+                "#9C755F", /* Taxi/ride-share service */
+                "#FF9DA7", /* Ferry (pink) */
+                "#BAB0AC", /* Motorbike/scooter (grey) */
+                "#17BECF"  /* Truck (cyan) */
               ]
             },
             "legend":{"title":"Mode of Transport"}
-          },
-
-          /* DASH PATTERNS to add redundancy (legend hidden to reduce clutter) */
-          "strokeDash": {
-            "field":"mode","type":"nominal","legend": null,
-            "scale":{
-              "domain":[
-                "Car, as driver","Car, as passenger","Train","Bus","Tram/light rail","Bicycle"
-              ],
-              "range":[ [1,0],[6,4],[1,0],[5,3],[2,2],[5,3] ]
-            }
           },
 
           "opacity": {"condition":{"param":"pick","value":1},"value":0.20},
@@ -529,7 +517,7 @@
     })();
   </script>
 
-  <!-- ===== Two small charts ===== -->
+  <!-- ===== Two small charts (unchanged) ===== -->
   <script>
   (function(){
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
