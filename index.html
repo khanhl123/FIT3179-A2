@@ -213,13 +213,10 @@
       height: 420,
       projection: { type: "equalEarth", rotate: [-134, 0, 0] },
       params: [
-        {
-          name: "metricSel",
-          value: "driver_pct",
+        { name: "metricSel", value: "driver_pct",
           bind: { input: "radio", name: "Metric: ",
                   options: ["driver_pct","wfh_pct_2021"],
-                  labels: ["Drivers (%)","Working from home (%)"] }
-        }
+                  labels: ["Drivers (%)","Working from home (%)"] } }
       ],
       layer: [
         {
@@ -251,10 +248,8 @@
             ]
           }
         },
-        {
-          data: { url: steURL, format: { type: "topojson", feature: featureName } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
-        }
+        { data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 } }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
@@ -432,7 +427,7 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart (distinct colours, solid lines) ===== -->
+  <!-- ===== Vega-Lite Slope Chart (Train = sky blue) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -455,12 +450,10 @@
         "params": [
           {"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}
         ],
-        "mark": {"type":"line","point":true},  /* all SOLID lines */
+        "mark": {"type":"line","point":true},
         "encoding": {
           "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
-
-          /* Distinct colour-blind–friendly colours (Tableau 10 + extras) */
           "color": {
             "field":"mode","type":"nominal",
             "scale":{
@@ -472,13 +465,13 @@
               "range":[
                 "#E15759", /* Worked at home */
                 "#4E79A7", /* Car, as driver */
-                "#59A14F", /* Train */
-                "#76B7B2", /* Bus */
-                "#B07AA1", /* Tram/light rail */
+                "#56B4E9", /* Train (sky blue — changed) */
+                "#76B7B2", /* Bus (teal) */
+                "#B07AA1", /* Tram/light rail (purple) */
                 "#000000", /* Walked only */
-                "#F28E2C", /* Bicycle */
-                "#EDC948", /* Car, as passenger (yellow, thicker if needed) */
-                "#9C755F", /* Taxi/ride-share service */
+                "#F28E2C", /* Bicycle (orange) */
+                "#EDC948", /* Car, as passenger (yellow) */
+                "#9C755F", /* Taxi/ride-share service (brown) */
                 "#FF9DA7", /* Ferry (pink) */
                 "#BAB0AC", /* Motorbike/scooter (grey) */
                 "#17BECF"  /* Truck (cyan) */
@@ -486,7 +479,6 @@
             },
             "legend":{"title":"Mode of Transport"}
           },
-
           "opacity": {"condition":{"param":"pick","value":1},"value":0.20},
           "size": {"condition":{"param":"pick","value":3.2},"value":2.2},
           "tooltip": [
