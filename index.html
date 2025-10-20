@@ -42,7 +42,7 @@
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
-    /* AUS map bindings */
+    /* Vega-Lite radio bindings style for the AUS map */
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
       padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
@@ -52,11 +52,10 @@
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
-    /* Two-up section */
+    /* Two-up layout for “Why the commute looks like this” */
     .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
-    #cityLocalWork, #nationalCommuteTime{min-height:280px}
-    .sourceNote{margin-top:6px;color:#64748b;font-size:11px}
+    #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
 
   <!-- D3 + TopoJSON -->
@@ -122,15 +121,11 @@
             <div>
               <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
               <div id="cityLocalWork"></div>
-              <p class="muted" style="margin-top:6px">Filter by city type. Click a bar to highlight. The dashed line shows the <em>average</em> of the filtered cities.</p>
-              <div id="cityLocalWork_src" class="sourceNote"></div>
             </div>
 
             <div>
               <h3 style="margin:8px 0 6px">Commute time distribution — Australia (2021)</h3>
               <div id="nationalCommuteTime"></div>
-              <p class="muted" style="margin-top:6px">Use the toggle for <em>Share vs Cumulative</em>. Drag across the x-axis to sum the share over a time range.</p>
-              <div id="nationalCommuteTime_src" class="sourceNote"></div>
             </div>
           </div>
         </div>
@@ -140,25 +135,27 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-        <div class="controls">
-          <label>Mode:</label>
-          <select id="modeSel"></select>
-          <span style="margin-left:8px">Year:</span>
-          <button class="btn" data-year="2016" id="y2016">2016</button>
-          <button class="btn active" data-year="2021" id="y2021">2021</button>
-          <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="showLabels" />
-            Labels
-          </label>
-        </div>
-        <div class="muted">
-          Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
-          <strong>Story:</strong> Inner-Melbourne swings from strong train/tram in 2016 to much higher working-from-home and lower PT in 2021,
-          while outer suburbs remain more car-reliant.
-        </div>
-        <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-        <p class="muted" style="margin:6px 0 0">Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.</p>
-        <div class="legend" id="legend"></div>
+          <div class="controls">
+            <label>Mode:</label>
+            <select id="modeSel"></select>
+            <span style="margin-left:8px">Year:</span>
+            <button class="btn" data-year="2016" id="y2016">2016</button>
+            <button class="btn active" data-year="2021" id="y2021">2021</button>
+            <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="showLabels" />
+              Labels
+            </label>
+          </div>
+          <div class="muted">
+            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
+            <strong>Story:</strong> Inner-Melbourne swings from strong train/tram in 2016 to much higher working-from-home and lower PT in 2021,
+            while outer suburbs remain more car-reliant.
+          </div>
+          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
+          <p class="muted" style="margin:6px 0 0">
+            Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.
+          </p>
+          <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
         <div class="pad">
@@ -192,34 +189,39 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (auto-detect TopoJSON feature; re-centered Equal Earth) ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
+    // Try to detect the correct TopoJSON object name to avoid blank maps.
     let featureName = "STE_2021_AUST_GDA2020";
     try {
       const res = await fetch(steURL);
       const topo = await res.json();
-      const objects = topo && topo.objects ? Object.keys(topo.objects) : [];
+      const objects = (topo && topo.objects) ? Object.keys(topo.objects) : [];
       if (objects.includes("STE_2021_AUST_GDA2020")) featureName = "STE_2021_AUST_GDA2020";
       else if (objects.includes("states")) featureName = "states";
       else if (objects.length) featureName = objects[0];
-    } catch(e) { console.warn("Topo inspect failed; using", featureName); }
+    } catch(e) {
+      console.warn("Could not inspect TopoJSON; falling back to", featureName);
+    }
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       width: "container",
       height: 420,
       projection: { type: "equalEarth", rotate: [-134, 0, 0] },
-      params: [{
-        name: "metricSel",
-        value: "driver_pct",
-        bind: { input: "radio", name: "Metric: ",
-                options: ["driver_pct","wfh_pct_2021"],
-                labels: ["Drivers (%)","Working from home (%)"] }
-      }],
+      params: [
+        {
+          name: "metricSel",
+          value: "driver_pct",
+          bind: { input: "radio", name: "Metric: ",
+                  options: ["driver_pct","wfh_pct_2021"],
+                  labels: ["Drivers (%)","Working from home (%)"] }
+        }
+      ],
       layer: [
         {
           data: { url: steURL, format: { type: "topojson", feature: featureName } },
@@ -250,8 +252,10 @@
             ]
           }
         },
-        { data: { url: steURL, format: { type: "topojson", feature: featureName } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 } }
+        {
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
+        }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
@@ -262,13 +266,13 @@
       const warn = document.createElement("div");
       warn.className = "muted";
       warn.style.marginTop = "8px";
-      warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON object name and the CSV URL.";
+      warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON file (object name) and the CSV URL.";
       el.appendChild(warn);
     });
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map ===== -->
+  <!-- ===== Greater Melbourne D3 Map (0–5, 6–10, then 10-pt bins) ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -285,9 +289,12 @@
     function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    /* Colour bins (0–5, 6–10, then 10-pt steps) */
+    /* ---- BREAKS (0–5, 6–10, then 10-point bins up to 71–80) ---- */
     const thresholds = [5,10,20,30,40,50,60,70];
-    const colors = ["#ef4444","#f97316","#f59e0b","#84cc16","#22c55e","#06b6d4","#3b82f6","#6366f1","#64748b"];
+    const colors = [
+      "#ef4444", "#f97316", "#f59e0b", "#84cc16",
+      "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#64748b"
+    ];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
     function labelFor(v){
       if (!Number.isFinite(v)) return "No data";
@@ -326,8 +333,14 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
+    /* Drop "(N)" rows */
     const rawData0 = rawDataAll.filter(d => !endsWithN(d.Area));
-    const EXCLUDE = new Set(["total","not stated","other","other mode","did not go to work"]);
+
+    /* ---- EXCLUDE rows by mode ---- */
+    const EXCLUDE = new Set([
+      "total","not stated","other","other mode","did not go to work"
+    ]);
+
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
@@ -361,6 +374,7 @@
       lat: hasLat ? +d.lat : NaN
     }));
 
+    /* Apply exclusions (modes) */
     data = data.filter(d => !EXCLUDE.has(normName(d.mode)));
 
     if (!hasLon || !hasLat) {
@@ -438,7 +452,7 @@
   })();
   </script>
 
-  <!-- ===== Slope Chart ===== -->
+  <!-- ===== Vega-Lite Slope Chart (exclusions) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -447,14 +461,20 @@
 
       const slopeSpec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "data": { "url": "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/proportion_transportation_slopchart.csv", "format": {"type": "csv"} },
+        "description": "Slope chart showing change in transport mode proportions (2016–2021)",
+        "data": {
+          "url": "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/proportion_transportation_slopchart.csv",
+          "format": {"type": "csv"}
+        },
         "transform": [
           {"filter": "indexof(['Total','Not stated','Other','Other Mode','Other mode','Did not go to work'], datum.mode) < 0"},
           {"fold": ["prop_2016_pct","prop_2021_pct"], "as": ["fold_key","Proportion"]},
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
           {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
         ],
-        "params": [{"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}],
+        "params": [
+          {"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}
+        ],
         "mark": {"type":"line","point":true},
         "encoding": {
           "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
@@ -462,7 +482,11 @@
           "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
           "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
           "size": {"condition":{"param":"pick","value":3},"value":2},
-          "tooltip": [{"field":"mode","title":"Mode"},{"field":"Year","title":"Year"},{"field":"Proportion","title":"Proportion (%)","format":".1f"}]
+          "tooltip": [
+            {"field":"mode","title":"Mode"},
+            {"field":"Year","title":"Year"},
+            {"field":"Proportion","title":"Proportion (%)","format":".1f"}
+          ]
         },
         "width": w,
         "height": 400,
@@ -470,161 +494,101 @@
       };
 
       vegaEmbed('#slopeChart', slopeSpec, { actions:false, renderer:'svg' })
-        .catch(err => console.error('Vega-Lite load error:', err));
+        .catch(err => {
+          console.error('Vega-Lite load error:', err);
+          const warn = document.createElement('div');
+          warn.className = 'banner';
+          warn.style.display = 'block';
+          warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
+          container.appendChild(warn);
+        });
     })();
   </script>
 
-  <!-- ===== Two small charts — robust loader (try multiple filenames / locations, inline data) ===== -->
+  <!-- ===== Two small charts ===== -->
   <script>
-  (async function(){
-    const root = "https://khanhl123.github.io/FIT3179-A2/";
-    const raw  = "https://raw.githubusercontent.com/khanhl123/FIT3179-A2/main/";
+  (function(){
+    const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
+    const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
-    // Possible filenames (use the exact one you actually have)
-    const cityFiles = [
-      "work_locally_by_city_2021.csv" // <— this is in your repo list
-    ];
-    const timeFiles = [
-      "commute_time_distribution_2021.csv",       // guess 1
-      "commute_time_distribution_2016_2021.csv",  // guess 2 (your GitHub list shows '..._20…')
-      "commute_time_distribution.csv"             // fallback name
-    ];
-
-    async function resolveCSV(possibleNames, outElId){
-      const tried = [];
-      for (const name of possibleNames){
-        for (const base of [root, raw]){
-          const url = base + name;
-          tried.push(url);
-          try{
-            const res = await fetch(url, {cache:'no-store'});
-            if (res.ok){
-              const text = await res.text();
-              const rows = d3.csvParse(text);
-              document.getElementById(outElId).textContent = "Loaded from: " + url;
-              return rows;
-            }
-          }catch(e){ /* keep trying */ }
-        }
-      }
-      document.getElementById(outElId).textContent = "Could not load. Tried: " + tried.join(" ; ");
-      return null;
-    }
-
-    const cityRows = await resolveCSV(cityFiles, "cityLocalWork_src");
-    const timeRows = await resolveCSV(timeFiles, "nationalCommuteTime_src");
-
-    function showError(where){
+    function showError(where, err){
+      console.error(where, err);
       const el = document.querySelector(where === 'local' ? '#cityLocalWork' : '#nationalCommuteTime');
       const warn = document.createElement('div');
       warn.className = 'muted';
       warn.style.marginTop = '8px';
-      warn.textContent = 'Could not load data. Check the actual filename in your repo and update the list above.';
+      warn.textContent = 'Could not load data. Check the CSV file path and that the file is public.';
       el.appendChild(warn);
     }
 
-    /* ===== Chart A: Interactive ranked bars (inline values) ===== */
-    if (cityRows){
-      const localSpec = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: cityRows },
-        width: 560,
-        height: { step: 26 },
-        params: [
-          { name: "typeFilter", value: "All",
-            bind: { input: "select", name: "City type: ", options: ["All","Capital","Regional"] } },
-          { name: "pickCity", select: { type: "point", fields: ["city"], on: "click", clear: "dblclick" }, empty: "all" }
-        ],
-        transform: [
-          { calculate: "datum.city_type", as: "City type" },
-          { calculate: "toNumber(replace(datum.pct_work_locally, ',',''))", as: "LocalPct" },
-          { filter: "isValid(datum.city) && isValid(datum['City type']) && isValid(datum.LocalPct)" },
-          { filter: "typeFilter == 'All' || datum['City type'] == typeFilter" }
-        ],
-        layer: [
-          { mark: { type: "bar", cornerRadiusEnd: 4 },
-            encoding: {
-              y: { field: "city", type: "nominal", sort: "-x", title: null },
-              x: { field: "LocalPct", type: "quantitative", title: "Work locally (%)", scale: { domain: [0, 100] } },
-              color: { field: "City type", type: "nominal", scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] }, legend: { title: "City type" } },
-              opacity: { condition: { param: "pickCity", value: 1 }, value: 0.35 },
-              tooltip: [{field:"city",title:"City"},{field:"City type"},{field:"LocalPct",title:"Work locally (%)",format:".1f"}]
-            } },
-          { mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
-            encoding: {
-              y: { field: "city", type: "nominal", sort: "-x" },
-              x: { field: "LocalPct", type: "quantitative" },
-              text: { field: "LocalPct", type: "quantitative", format: ".1f" },
-              opacity: { condition: { param: "pickCity", value: 1 }, value: 0.6 }
-            } },
-          { transform: [{aggregate:[{op:"mean",field:"LocalPct",as:"MeanLocal"}]}],
-            mark: { type: "rule", color: "#64748b", strokeDash: [6,4] },
-            encoding: { x: { field: "MeanLocal", type: "quantitative" } } },
-          { transform: [{aggregate:[{op:"mean",field:"LocalPct",as:"MeanLocal"}]}],
-            mark: { type: "text", align: "left", baseline: "bottom", dy: -4, dx: 4, fontSize: 11, color: "#64748b" },
-            encoding: { x: { field: "MeanLocal", type: "quantitative" }, y: { value: 0 }, text: { field: "MeanLocal", type: "quantitative", format: "'Avg: '0.1f" } } }
-        ],
-        config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
-      };
-      vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(e=>showError('local'));
-    } else { showError('local'); }
+    const localSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      data: { url: urlLocal, format: { type: "csv" } },
+      width: 520,
+      height: { step: 26 },
+      transform: [{ calculate: "datum.city_type", as: "City type" }],
+      layer: [
+        {
+          mark: { type: "bar", cornerRadiusEnd: 4 },
+          encoding: {
+            y: { field: "city", type: "nominal", sort: "-x", title: null },
+            x: {
+              field: "pct_work_locally", type: "quantitative",
+              title: "Work locally (%)", scale: { domain: [0, 100] }
+            },
+            color: {
+              field: "City type", type: "nominal",
+              scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
+              legend: { title: "City type" }
+            },
+            tooltip: [
+              { field: "city", title: "City" },
+              { field: "City type" },
+              { field: "pct_work_locally", title: "Work locally (%)", format: ".1f" }
+            ]
+          }
+        },
+        {
+          mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
+          encoding: {
+            y: { field: "city", type: "nominal", sort: "-x" },
+            x: { field: "pct_work_locally", type: "quantitative" },
+            text: { field: "pct_work_locally", type: "quantitative", format: ".1f" }
+          }
+        }
+      ],
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
+    };
 
-    /* ===== Chart B: Commute time — inline values + interactions ===== */
-    if (timeRows){
-      const timeSpec = {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        data: { values: timeRows },
-        width: 560,
-        height: 260,
-        params: [
-          { name: "viewMode", value: "Share", bind: { input: "radio", name: "View: ", options: ["Share","Cumulative"] } },
-          { name: "brush", select: { type: "interval", encodings: ["x"] } }
-        ],
-        transform: [
-          { calculate: "(datum.time_bin || datum.bin || datum.minutes || datum.Time || datum.category || datum.Category)", as: "BinLabel" },
-          { calculate: "parseInt(datum.BinLabel)", as: "BinNum" },
-          { calculate: "toNumber(replace((datum.commuters || datum.count || datum.Count || datum.total || datum.Total || ''), ',',''))", as: "Commuters" },
-          { filter: "isValid(datum.BinLabel) && isValid(datum.Commuters)" },
-          { joinaggregate: [{ op: "sum", field: "Commuters", as: "AllCommuters" }] },
-          { calculate: "datum.Commuters / datum.AllCommuters * 100", as: "SharePct" },
-          { window: [{ op: "sum", field: "SharePct", as: "CumPct" }], sort: [{ field: "BinNum" }] },
-          { calculate: "viewMode == 'Share' ? datum.SharePct : datum.CumPct", as: "Shown" }
-        ],
-        layer: [
-          { mark: { type: "line", interpolate: "monotone" },
-            encoding: {
-              x: { field: "BinLabel", type: "ordinal", sort: { field: "BinNum", order: "ascending" }, title: "Commute time (minutes)" },
-              y: { field: "Shown", type: "quantitative", title: "Share of commuters (%)", scale: { domain: [0, 100] } }
-            } },
-          { mark: { type: "point" },
-            encoding: {
-              x: { field: "BinLabel", type: "ordinal", sort: { field: "BinNum", order: "ascending" } },
-              y: { field: "Shown", type: "quantitative" },
-              tooltip: [
-                { field: "BinLabel", title: "Time" },
-                { field: "SharePct", title: "Share (%)", format: ".1f" },
-                { field: "CumPct", title: "Cumulative (%)", format: ".1f" },
-                { field: "Commuters", title: "Commuters", format: "," }
-              ]
-            } },
-          { transform: [{ filter: "viewMode == 'Share'" },{ aggregate: [{ op: "argmax", field: "SharePct", as: "peak" }] },{ flatten: ["peak"] }],
-            mark: { type: "point", filled: true, size: 80, color: "#2563eb" },
-            encoding: { x: { field: "peak.BinLabel", type: "ordinal" }, y: { field: "peak.SharePct", type: "quantitative" } } },
-          { transform: [{ filter: "viewMode == 'Share'" },{ aggregate: [{ op: "argmax", field: "SharePct", as: "peak" }] },{ flatten: ["peak"] }],
-            mark: { type: "text", dx: 6, dy: -6, fontSize: 11, color: "#334155" },
-            encoding: {
-              x: { field: "peak.BinLabel", type: "ordinal" },
-              y: { field: "peak.SharePct", type: "quantitative" },
-              text: { field: "peak.SharePct", type: "quantitative", format: "'Peak: '0.1f' %'" }
-            } },
-          { transform: [{ filter: { param: "brush" } },{ aggregate: [{ op: "sum", field: "SharePct", as: "RangeShare" }] }],
-            mark: { type: "text", align: "right", baseline: "top", x: 540, y: 8, fontSize: 12, color: "#0f172a" },
-            encoding: { text: { field: "RangeShare", type: "quantitative", format: "'Selected: '0.1f' %'" } } }
-        ],
-        config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
-      };
-      vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(()=>showError('time'));
-    } else { showError('time'); }
+    const timeSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      data: { url: urlTime, format: { type: "csv" } },
+      width: 520,
+      height: 220,
+      transform: [
+        { calculate: "(datum.time_bin || datum.bin || datum.minutes || datum.Time || datum.category || datum.Category)", as: "BinLabel" },
+        { calculate: "parseInt(datum.BinLabel)", as: "BinNum" },
+        { calculate: "toNumber(replace((datum.commuters || datum.count || datum.Count || datum.total || datum.Total || ''), ',',''))", as: "Commuters" },
+        { filter: "isValid(datum.BinLabel) && isValid(datum.Commuters)" },
+        { joinaggregate: [{ op: "sum", field: "Commuters", as: "AllCommuters" }] },
+        { calculate: "datum.Commuters / datum.AllCommuters * 100", as: "SharePct" }
+      ],
+      mark: { type: "line", point: true, interpolate: "monotone" },
+      encoding: {
+        x: { field: "BinLabel", type: "ordinal", sort: {"field":"BinNum","order":"ascending"}, title: "Commute time (minutes)" },
+        y: { field: "SharePct", type: "quantitative", title: "Share of commuters (%)", scale: { domain: [0, 100] } },
+        order: { field: "BinNum", type: "quantitative" },
+        tooltip: [
+          { field: "BinLabel", title: "Time" },
+          { field: "SharePct", title: "Share (%)", format: ".1f" },
+          { field: "Commuters", title: "Commuters", format: "," }
+        ]
+      },
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
+    };
+
+    vegaEmbed("#cityLocalWork", localSpec, {actions:false}).catch(err => showError('local', err));
+    vegaEmbed("#nationalCommuteTime", timeSpec, {actions:false}).catch(err => showError('time', err));
   })();
   </script>
 </body>
