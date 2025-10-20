@@ -16,24 +16,8 @@
     .pad{padding:18px}
     .card h2{font-size:20px;margin:0 0 12px}
     .muted{color:#64748b;font-size:12px}
-    .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
-    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
-    /* Greater Melbourne map */
-    #mapBox{height:620px; position:relative;}
-    .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
-    select,button,label{font:inherit}
-    .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
-    .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
-    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
-    .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
-    svg{display:block;width:100%;height:100%}
-    .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
-    @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
-    #slopeChart{min-height:420px;}
-    .vega-embed{background:#fff;border-radius:16px;}
-
-    /* Two-column layout cards */
+    /* Layout helpers */
     .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
     .map-grid{display:grid;gap:16px;align-items:start}
     .map-grid--notes-left{grid-template-columns:360px minmax(420px,1fr);}
@@ -52,16 +36,11 @@
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
-    /* NEW: two-up layout for the “Why the commute looks like this” section */
+    /* Two-up charts */
     .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
-    /* Reserve some space so you notice if data fails */
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
-
-  <!-- D3 + TopoJSON -->
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <!-- Vega-Lite + Vega-Embed -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
@@ -71,16 +50,16 @@
 <body>
   <header>
     <h1>How Australians got to work?</h1>
-    <div class="subtitle">Australia-wide overview (capitals) + Greater Melbourne detail | 2016–2021</div>
+    <div class="subtitle">Australia-wide overview (capitals) + selected details | 2016–2021</div>
     <p class="intro">
-      In 2021, most Australians drove to work; WFH jumped, led by NSW and Victoria. Below, we zoom into Greater Melbourne to track the 2016–2021 changes.
+      In 2021, most Australians drove to work; WFH jumped, led by NSW and Victoria. Below, we track the 2016–2021 changes.
     </p>
   </header>
 
   <div class="wrap">
     <div class="grid">
 
-      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) — TOP SECTION ===== -->
+      <!-- ===== Australia-wide (States) Map: Drivers vs WFH (2021) ===== -->
       <section class="card">
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
@@ -90,7 +69,6 @@
           </p>
 
           <div class="map-grid map-grid--notes-left">
-            <!-- Notes FIRST (left) -->
             <aside class="side-notes">
               <h3>What the map shows</h3>
               <p>The geography of the “new commute” is uneven. <strong>NSW</strong> and <strong>Victoria</strong> post the highest
@@ -101,26 +79,23 @@
               <p>In short, by 2021 many Australians either <strong>worked from home</strong>—especially in the east—or <strong>drove</strong>, with public transport still in recovery.</p>
             </aside>
 
-            <!-- Map SECOND (right) -->
             <div id="ausMap"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== NEW SECTION: Why the commute looks like this ===== -->
+      <!-- ===== Why the commute looks like this ===== -->
       <section class="card">
         <div class="pad">
           <h2>Why the commute looks like this</h2>
 
-          <!-- REPLACED DESCRIPTION START -->
           <div class="side-notes">
             <h3>Share working locally, by city (2021)</h3>
             <p>Regional centres dominate. Townsville (~92%), Ballarat (~85%) and Launceston (~81%) have the highest share of people working in the same local area, with Cairns also high (~67%). Capital cities sit lower—Sydney (~33%), Melbourne (~31%), Brisbane (~28%) and Adelaide (~27%)—while the smaller capitals Darwin (~45%) and Hobart (~42%) are mid-range. The pattern suggests local job–housing match is strongest outside the big metros.</p>
 
             <h3>Commute time distribution — Australia (2021)</h3>
-            <p>Commute times form a single “hump”: the largest shares are 15–25 minutes (each a little over one-fifth of commuters). The distribution then tapers steadily after 35 minutes; only about one in seven Australians travel 55 minutes or longer, and very long trips (60+ minutes) are a small minority.</p>
+            <p>Commute times form a single “hump”: the largest shares are 15–25 minutes. The distribution then tapers after 35 minutes; only about one in seven Australians travel 55 minutes or longer.</p>
           </div>
-          <!-- REPLACED DESCRIPTION END -->
 
           <div class="two-grid">
             <div>
@@ -133,39 +108,6 @@
               <div id="nationalCommuteTime"></div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- ===== Greater Melbourne — Dot map by mode & year ===== -->
-      <section class="card">
-        <div class="pad">
-          <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-          <div class="controls">
-            <label>Mode:</label>
-            <select id="modeSel"></select>
-            <span style="margin-left:8px">Year:</span>
-            <button class="btn" data-year="2016" id="y2016">2016</button>
-            <button class="btn active" data-year="2021" id="y2021">2021</button>
-            <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
-              <input type="checkbox" id="showLabels" />
-              Labels
-            </label>
-          </div>
-          <div class="muted">
-            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
-            <strong>Story:</strong> Inner-Melbourne swings from strong train/tram in 2016 to much higher working-from-home and lower PT in 2021,
-            while outer suburbs remain more car-reliant.
-          </div>
-          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-          <div class="legend" id="legend"></div>
-        </div>
-        <div id="mapBox"></div>
-        <div class="pad">
-          <p class="muted" style="margin-top:8px">
-            This view highlights how the pandemic reshaped the commute: <strong>central municipalities</strong> gained much more
-            <strong>work-from-home</strong>, shrinking public transport shares, whereas <strong>middle and outer suburbs</strong> kept a stronger
-            <strong>car-driver</strong> profile. The map lets you trace which areas changed the most for each mode.
-          </p>
         </div>
       </section>
 
@@ -263,166 +205,6 @@
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map ===== -->
-  <script>
-  (async function () {
-    const topoUrl = "LGA_2021_AUST_GDA2020.json";
-    const dataUrl = "B__Wide_comparison__Area___mode__2016_vs_2021_.csv";
-    const centUrl = "lga_centroids.csv";
-
-    const MODE_ALIASES = new Map([
-      ["taxi/ride-share","Taxi/Rideshare"],["taxi/ride share","Taxi/Rideshare"],
-      ["car - as driver","Car driver"],["car- as driver","Car driver"],
-      ["car - as passenger","Car passenger"],["walked only","Walk"]
-    ]);
-    function normName(s){ return String(s||"").toLowerCase().replace(/\s*\([^)]*\)\s*/g," ").replace(/^city of\s+/,"").replace(/[–—-]+/g," ").replace(/\s+/g," ").trim(); }
-    function normMode(s){ const raw = normName(s); return MODE_ALIASES.get(raw) || String(s); }
-    function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
-    const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
-
-    const thresholds = [20,30,40,50,60,70,80,90];
-    const colors = ["#ef4444","#3b82f6","#22c55e","#a855f7","#f59e0b","#06b6d4","#eab308","#ec4899","#0f172a"];
-    const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
-    function labelFor(v){
-      if (!Number.isFinite(v)) return "No data";
-      if (v <= 20) return "0–20%"; if (v <= 30) return "21–30%"; if (v <= 40) return "31–40%";
-      if (v <= 50) return "41–50%"; if (v <= 60) return "51–60%";
-      if (v <= 70) return "61–70%"; if (v <= 80) return "71–80%";
-      if (v <= 90) return "81–90%"; return "91–100%";
-    }
-
-    const legend = document.getElementById("legend");
-    ["0–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%","81–90%","91–100%"]
-      .forEach((lab,i) => {
-        const el = document.createElement("div");
-        el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span>
-                        <span style="font-size:12px;color:#475569">${lab}</span>`;
-        legend.appendChild(el);
-      });
-
-    const width = document.getElementById("mapBox").clientWidth;
-    const height = document.getElementById("mapBox").clientHeight;
-    const svg = d3.select("#mapBox").append("svg").attr("viewBox", [0,0,width,height]);
-    const gBase = svg.append("g");
-    const gDots = svg.append("g");
-    const gLabels = svg.append("g");
-    const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
-
-    const [topology, rawDataAll, centroidsAll] = await Promise.all([
-      d3.json(topoUrl),
-      d3.csv(dataUrl),
-      d3.csv(centUrl, d3.autoType)
-    ]);
-
-    const rawData = rawDataAll.filter(d => !endsWithN(d.Area));
-    const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
-
-    const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
-      ? "LGA_2021_AUST_GDA2020"
-      : Object.keys(topology.objects)[0];
-    const geo = topojson.feature(topology, topology.objects[objName]);
-    let melb = geo;
-    const sampleProps = (geo.features[0] && geo.features[0].properties) || {};
-    if ("GCC_NAME21" in sampleProps) {
-      melb = {type:"FeatureCollection",features: geo.features.filter(f => f.properties.GCC_NAME21 === "Greater Melbourne")};
-    }
-
-    const projection = d3.geoMercator().fitSize([width,height], melb);
-    const path = d3.geoPath(projection);
-    gBase.append("g")
-      .selectAll("path").data(melb.features).join("path")
-      .attr("d", path).attr("fill", "#eef2ff")
-      .attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
-
-    const hasLon = rawData.length && ("lon" in rawData[0]);
-    const hasLat = rawData.length && ("lat" in rawData[0]);
-
-    let data = rawData.map(d => ({
-      Area: d.Area,
-      area_norm: normName(d.Area),
-      mode: normMode(d.mode ?? d.Mode ?? d.data_label ?? d["Data label"]),
-      share_2016: toNum(d.share_2016 ?? d["2016%"] ?? d["2016 %"]),
-      share_2021: toNum(d.share_2021 ?? d["2021%"] ?? d["2021 %"]),
-      delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
-      lon: hasLon ? +d.lon : NaN,
-      lat: hasLat ? +d.lat : NaN
-    }));
-
-    if (!hasLon || !hasLat) {
-      const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
-      data.forEach(d => { const c = centByArea.get(d.area_norm); if (c) { d.lon = c.lon; d.lat = c.lat; } });
-      document.getElementById("joinNote").style.display = "block";
-    }
-
-    const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
-    const modeSel = document.getElementById("modeSel");
-    modes.forEach(m => modeSel.appendChild(new Option(m, m)));
-
-    const y2016 = document.getElementById("y2016");
-    const y2021 = document.getElementById("y2021");
-    const showLabels = document.getElementById("showLabels");
-    function setYear(y){ y2016.classList.toggle("active", y===2016); y2021.classList.toggle("active", y===2021); render(modeSel.value, y, showLabels.checked); }
-    modeSel.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
-    y2016.addEventListener("click", () => setYear(2016));
-    y2021.addEventListener("click", () => setYear(2021));
-    showLabels.addEventListener("change", () => setYear(y2016.classList.contains("active") ? 2016 : 2021));
-
-    function render(mode, year, withLabels){
-      const rows = data.filter(d => d.mode === mode);
-      const pts = rows.map(d => {
-        const value = year === 2016 ? d.share_2016 : d.share_2021;
-        const hasValue = Number.isFinite(value);
-        const hasCoord = Number.isFinite(d.lon) && Number.isFinite(d.lat);
-        const p = hasCoord ? projection([d.lon, d.lat]) : null;
-        return { Area: d.Area, x0: p? p[0]:undefined, y0: p? p[1]:undefined, value, hasValue, mode, year };
-      }).filter(d => d.x0 !== undefined);
-
-      const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
-      const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
-      const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
-      const sim = d3.forceSimulation(nodes)
-        .force("x", d3.forceX(d => d.x0).strength(0.20))
-        .force("y", d3.forceY(d => d.y0).strength(0.20))
-        .force("collide", d3.forceCollide(d => r(d.hasValue ? d.value : 0.1) + 1.5))
-        .stop();
-      for (let i = 0; i < 120; i++) sim.tick();
-
-      const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
-      circles.join(
-        enter => enter.append("circle")
-          .attr("cx", d => d.x0).attr("cy", d => d.y0).attr("r", 0)
-          .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
-          .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
-          .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
-          .on("mousemove", (e,d) => {
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
-            d3.select(".tooltip").style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
-               .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
-          })
-          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
-          .transition().duration(400)
-          .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
-        update => update.transition().duration(300)
-          .attr("cx", d => d.x).attr("cy", d => d.y)
-          .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
-          .attr("r", d => r(d.hasValue ? d.value : 0.1)),
-        exit => exit.transition().duration(200).attr("r",0).remove()
-      );
-
-      const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
-      labels.join(
-        enter => enter.append("text")
-          .attr("class","label").attr("x", d => d.x + 10).attr("y", d => d.y + 3)
-          .style("opacity", 0).text(d => `${d.value.toFixed(0)}%`)
-          .transition().duration(250).style("opacity", 1),
-        update => update.transition().duration(250).attr("x", d => d.x + 10).attr("y", d => d.y + 3).text(d => `${d.value.toFixed(0)}%`),
-        exit => exit.transition().duration(150).style("opacity",0).remove()
-      );
-    }
-    setYear(2021);
-  })();
-  </script>
-
   <!-- ===== Vega-Lite Slope Chart ===== -->
   <script>
     (function(){
@@ -465,8 +247,8 @@
         .catch(err => {
           console.error('Vega-Lite load error:', err);
           const warn = document.createElement('div');
-          warn.className = 'banner';
-          warn.style.display = 'block';
+          warn.className = 'muted';
+          warn.style.marginTop = '8px';
           warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
           container.appendChild(warn);
         });
@@ -476,7 +258,6 @@
   <!-- ===== Two small charts (local work by city, and national commute time) ===== -->
   <script>
   (function(){
-    // Use GitHub Pages URLs (same origin)
     const urlLocal = "https://khanhl123.github.io/FIT3179-A2/work_locally_by_city_2021.csv";
     const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
@@ -530,7 +311,7 @@
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
 
-    /* Chart B: LINE — national commute-time distribution (from counts -> % share) */
+    // Chart B: LINE — national commute-time distribution (from counts -> % share)
     const timeSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
       data: { url: urlTime, format: { type: "csv" } },
