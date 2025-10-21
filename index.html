@@ -43,6 +43,14 @@
     .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
     .sw{width:14px; height:14px; border-radius:3px; border:1px solid #e2e8f0; display:inline-block}
 
+    /* Australia map controls */
+    .metric-ui{
+      display:flex; gap:14px; align-items:center; margin:10px 0 6px;
+      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
+    }
+    .metric-ui label{cursor:pointer}
+    .metric-ui input[type="radio"]{transform:scale(1.1); accent-color:#0f172a; cursor:pointer}
+
     /* Greater Melbourne map */
     #mapBox{height:620px; position:relative;}
     .controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:6px 0 10px}
@@ -51,8 +59,9 @@
     .btn.active{background:#0f172a; color:#fff; border-color:#0f172a}
     .tooltip{position:absolute; pointer-events:none; background:#111827; color:#fff; padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.2)}
     .banner{margin-top:8px; color:#b45309; background:#fff7ed; border:1px solid #fde68a; padding:8px 10px; border-radius:8px; display:none}
-    svg{display:block; width:100%; height:100%}
-    .label{font-size:10px; fill:#111827; paint-order:stroke; stroke:#fff; stroke-width:3px; stroke-linejoin:round}
+    /* IMPORTANT: scope SVG sizing so we don't break Vega interactivity */
+    #mapBox svg{display:block; width:100%; height:100%}
+    .vega-embed svg{width:100%; height:auto}
 
     /* Two-column layout cards */
     .slope-grid{display:grid; grid-template-columns:minmax(320px,1fr) 360px; gap:16px; align-items:start}
@@ -62,16 +71,6 @@
     .side-notes h3{margin:0 0 8px; font-size:16px; color:#0f172a}
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
-
-    /* Vega-Lite radio bindings style for the AUS map */
-    #ausMap .vega-bindings{
-      display:flex; gap:14px; align-items:center; margin-top:10px;
-      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
-      font-size:14px;
-    }
-    #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
-    #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
-    #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
     /* Two-up layout for “Why the commute looks like this” */
     .two-grid{display:grid; grid-template-columns:minmax(320px,1fr) minmax(320px,1fr); gap:16px; align-items:start}
@@ -129,7 +128,20 @@
               </p>
             </aside>
 
-            <div id="ausMap"></div>
+            <div>
+              <!-- real UI controls that re-embed the spec -->
+              <div class="metric-ui" id="metricUI">
+                <strong style="font-weight:600; color:#0f172a">Metric:</strong>
+                <label><input type="radio" name="metric" value="driver_pct" checked> Drivers (%)</label>
+                <label><input type="radio" name="metric" value="wfh_pct_2021"> Working from home (%)</label>
+              </div>
+              <div id="ausMap">
+                <div class="muted" style="margin-top:4px">Loading chart…</div>
+              </div>
+              <div class="muted" style="margin-top:6px">
+                Bins shown in legend are percentages of workers.
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -158,12 +170,12 @@
           <div class="two-grid">
             <div>
               <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
-              <div id="cityLocalWork"></div>
+              <div id="cityLocalWork"><div class="muted">Loading chart…</div></div>
             </div>
 
             <div>
               <h3 style="margin:8px 0 6px">Commute time distribution — Australia (2021)</h3>
-              <div id="nationalCommuteTime"></div>
+              <div id="nationalCommuteTime"><div class="muted">Loading chart…</div></div>
             </div>
           </div>
         </div>
@@ -173,7 +185,7 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-          <div class="controls">
+        <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
@@ -197,10 +209,13 @@
         </div>
         <div id="mapBox"></div>
         <div class="pad">
-          <p class="muted" style="margin-top:8px">
-            The map shows where change happened: central municipalities gained the most WFH and saw the biggest public-transport drop,
-            whereas middle and outer suburbs kept a stronger car-driver profile.
-          </p>
+          <div class="muted" style="margin-top:8px">
+            <p><strong>WFH surged:</strong> median increase of 36.1 percentage points (mean increase of 35.8). Standouts include Kensington rising by 42.6 points (from 3.7% to 46.4%), East Melbourne by 41.4, Docklands by 41.4, Arden by 41.0, and South Yarra by 40.5.</p>
+            <p><strong>Public transport fell sharply:</strong> median decrease of 28.7 percentage points (mean decrease of 27.4). Largest declines were Kensington down 50.6 points (from 67.4% to 16.8%), Docklands down 38.1, South Yarra down 36.8, Parkville down 32.8, and North Melbourne down 31.5.</p>
+            <p><strong>Active and other modes also declined:</strong> Walking decreased by 14.1 points (median); Tram by 9.5; Car (driver) by 5.8; Train by 5.0; Bicycle by 2.3.</p>
+            <p><strong>Non-attendance edged up:</strong> “Did not go to work” increased by 2.9 points (median).</p>
+            <p><strong>Overall pattern:</strong> mode shares still total roughly 100%, but the composition shifted decisively from on-site and transit travel toward remote work.</p>
+          </div>
         </div>
       </section>
 
@@ -210,7 +225,7 @@
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
           <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
-            <div id="slopeChart"></div>
+            <div id="slopeChart"><div class="muted">Loading chart…</div></div>
             <aside class="side-notes">
               <h3>What stands out</h3>
               <p>Car, as driver remained dominant but fell from ~62% (2016) to ~53% (2021).</p>
@@ -225,13 +240,13 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (re-embed on toggle) ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
-    // Detect the TopoJSON object name to avoid blank maps.
+    // Detect the TopoJSON object name once.
     let featureName = "STE_2021_AUST_GDA2020";
     try {
       const res = await fetch(steURL);
@@ -244,67 +259,77 @@
       console.warn("Could not inspect TopoJSON; falling back to", featureName);
     }
 
-    const ausSpec = {
-      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-      width: "container",
-      height: 420,
-      projection: { type: "equalEarth", rotate: [-134, 0, 0] },
-      params: [
-        {
-          name: "metricSel",
-          value: "driver_pct",
-          bind: { input: "radio", name: "Metric: ",
-                  options: ["driver_pct","wfh_pct_2021"],
-                  labels: ["Drivers (%)","Working from home (%)"] }
-        }
-      ],
-      layer: [
-        {
-          data: { url: steURL, format: { type: "topojson", feature: featureName } },
-          transform: [
-            { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
-            { lookup: "state_name",
-              from: { data: { url: csvURL }, key: "STE_NAME_2021",
-                      fields: ["driver_pct","wfh_pct_2021"] } },
-            { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
-            { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
-          ],
-          mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.8 },
-          encoding: {
-            color: {
-              condition: {
-                test: "isValid(datum.metric_value)",
-                field: "metric_value", type: "quantitative",
-                title: "Proportion (%)",
-                scale: { domain: [0, 80], scheme: "blues" },
-                legend: { format: ".0f" }
+    function specFor(metricField){
+      const titleLabel = metricField === "driver_pct" ? "Drivers (%)" : "Working from home (%)";
+      return {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        width: "container",
+        height: 420,
+        projection: { type: "equalEarth", rotate: [-134, 0, 0] },
+        layer: [
+          {
+            data: { url: steURL, format: { type: "topojson", feature: featureName } },
+            transform: [
+              { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
+              { lookup: "state_name",
+                from: { data: { url: csvURL }, key: "STE_NAME_2021",
+                        fields: ["driver_pct","wfh_pct_2021"] } },
+              { calculate: `${JSON.stringify(titleLabel)}`, as: "metric_name" },
+              { calculate: metricField === "driver_pct" ? "datum.driver_pct" : "datum.wfh_pct_2021", as: "metric_value" }
+            ],
+            mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.8 },
+            encoding: {
+              color: {
+                condition: {
+                  test: "isValid(datum.metric_value)",
+                  field: "metric_value", type: "quantitative",
+                  title: "Proportion (%)",
+                  scale: { domain: [0, 80], scheme: "blues" },
+                  legend: { format: ".0f" }
+                },
+                value: "#e5e7eb"
               },
-              value: "#e5e7eb"
-            },
-            tooltip: [
-              { field: "state_name", title: "State/Territory" },
-              { field: "metric_name", title: "Metric" },
-              { field: "metric_value", title: "Proportion (%)", format: ".1f" }
-            ]
+              tooltip: [
+                { field: "state_name", title: "State/Territory" },
+                { field: "metric_name", title: "Metric" },
+                { field: "metric_value", title: "Proportion (%)", format: ".1f" }
+              ]
+            }
+          },
+          {
+            data: { url: steURL, format: { type: "topojson", feature: featureName } },
+            mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
           }
-        },
-        {
-          data: { url: steURL, format: { type: "topojson", feature: featureName } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
-        }
-      ],
-      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
-    };
+        ],
+        config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
+      };
+    }
 
-    vegaEmbed("#ausMap", ausSpec, {actions:false}).catch(err=>{
-      console.error("Vega-Lite map error:", err);
-      const el = document.getElementById("ausMap");
-      const warn = document.createElement("div");
-      warn.className = "muted";
-      warn.style.marginTop = "8px";
-      warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON file (object name) and the CSV URL.";
-      el.appendChild(warn);
+    async function renderAus(metric){
+      try{
+        await vegaEmbed("#ausMap", specFor(metric), {actions:false});
+      }catch(err){
+        console.error("Vega-Lite map error:", err);
+        const el = document.getElementById("ausMap");
+        el.innerHTML = "";
+        const warn = document.createElement("div");
+        warn.className = "muted";
+        warn.style.marginTop = "8px";
+        warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON file (object name) and the CSV URL.";
+        el.appendChild(warn);
+      }
+    }
+
+    // Wire up the UI
+    const metricUI = document.getElementById("metricUI");
+    metricUI.addEventListener("change", (e)=>{
+      if(e.target && e.target.name === "metric"){
+        renderAus(e.target.value);
+      }
     });
+
+    // Initial render
+    renderAus("driver_pct");
   })();
   </script>
 
@@ -511,7 +536,6 @@
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
           "color": {
             "field":"mode","type":"nominal","legend":{"title":"Mode of Transport"},
-            /* color-blind-safe palette w/ unique hues (no red-green pair) */
             "scale": {"range": ["#d16b6b","#2b7c9b","#a2a6b1","#f0a35e","#b07fb1","#9ec27d","#c97e68","#647aa3","#d3b26f","#4a6fb1"]}
           },
           "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
@@ -531,8 +555,8 @@
         .catch(err => {
           console.error('Vega-Lite load error:', err);
           const warn = document.createElement('div');
-          warn.className = 'banner';
-          warn.style.display = 'block';
+          warn.className = 'muted';
+          warn.style.marginTop = '8px';
           warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
           container.appendChild(warn);
         });
