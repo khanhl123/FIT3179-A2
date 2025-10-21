@@ -5,75 +5,62 @@
   <title>How Australians got to work?</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    /* ===== Base & layout ===== */
     :root{
-      --bg:#0b1a2b;         /* dark blue page background */
-      --card:#ffffff;       /* card background */
-      --ink:#0f172a;        /* main text */
-      --muted:#64748b;      /* muted text */
-      --border:#e5e7eb;     /* light border */
-      --corner:12px;        /* slightly rounded */
-      --shadow:0 4px 18px rgba(15,23,42,.06);
+      --bg:#0b1f3a;          /* dark blue page background */
+      --card:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --border:#e5e7eb;
     }
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--ink);
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    }
-    header{padding:28px 20px 14px; text-align:center; color:#e6edf6}
-    h1{margin:0; font-size:clamp(32px,3.8vw,44px); letter-spacing:-0.02em}
-    .subtitle{
-      margin-top:6px; color:#9fb2c7; font-size:14px; letter-spacing:.12em;
-    }
-    .intro{
-      max-width:900px; margin:12px auto 0; color:#c9d6e4;
-      line-height:1.65; font-size:16px;
-    }
-    .wrap{max-width:1200px; margin:0 auto; padding:0 16px 40px}
-    .grid{display:grid; grid-template-columns:1fr; gap:22px}
-
-    /* ===== Cards ===== */
-    .card{
-      background:var(--card); border:1px solid var(--border);
-      border-radius:var(--corner); box-shadow:var(--shadow)
-    }
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    header{padding:28px 20px 8px;text-align:center;color:#e5ecff}
+    h1{margin:0;font-size:clamp(32px,4vw,44px);letter-spacing:-.02em}
+    .subtitle{margin-top:6px;color:#c8d3ff;font-size:14px;letter-spacing:.08em}
+    .intro{max-width:900px;margin:12px auto 24px;color:#d9e2ff}
+    .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+    .grid{display:grid;grid-template-columns:1fr;gap:20px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 4px 18px rgba(15,23,42,.18)}
     .pad{padding:18px}
-    .card h2{font-size:24px; margin:0 0 10px}
-    .muted{color:var(--muted); font-size:12px}
-    .legend{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
-    .sw{width:14px; height:14px; border-radius:3px; border:1px solid #e2e8f0; display:inline-block}
-
-    /* Australia map controls */
-    .metric-ui{
-      display:flex; gap:14px; align-items:center; margin:10px 0 6px;
-      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
-    }
-    .metric-ui label{cursor:pointer}
-    .metric-ui input[type="radio"]{transform:scale(1.1); accent-color:#0f172a; cursor:pointer}
+    .card h2{font-size:24px;margin:0 0 8px}
+    .muted{color:var(--muted);font-size:14px}
+    .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
     /* Greater Melbourne map */
     #mapBox{height:620px; position:relative;}
-    .controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:6px 0 10px}
+    .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 10px}
     select,button,label{font:inherit}
-    .btn{padding:6px 10px; border:1px solid var(--border); border-radius:10px; background:#fff; cursor:pointer}
-    .btn.active{background:#0f172a; color:#fff; border-color:#0f172a}
-    .tooltip{position:absolute; pointer-events:none; background:#111827; color:#fff; padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:0 6px 18px rgba(0,0,0,.2)}
-    .banner{margin-top:8px; color:#b45309; background:#fff7ed; border:1px solid #fde68a; padding:8px 10px; border-radius:8px; display:none}
-    /* IMPORTANT: scope SVG sizing so we don't break Vega interactivity */
-    #mapBox svg{display:block; width:100%; height:100%}
-    .vega-embed svg{width:100%; height:auto}
+    .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+    .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
+    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
+    svg{display:block;width:100%;height:100%}
+    .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
+    @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
+    #slopeChart{min-height:420px;}
+    .vega-embed{background:#fff;border-radius:10px;}
 
     /* Two-column layout cards */
-    .slope-grid{display:grid; grid-template-columns:minmax(320px,1fr) 360px; gap:16px; align-items:start}
-    .map-grid{display:grid; gap:16px; align-items:start}
+    .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
+    .map-grid{display:grid;gap:16px;align-items:start}
     .map-grid--notes-left{grid-template-columns:360px minmax(420px,1fr);}
-    .side-notes{background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; color:#334155; font-size:14px; line-height:1.58}
-    .side-notes h3{margin:0 0 8px; font-size:16px; color:#0f172a}
+    .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
+    .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
+    /* Vega-Lite radio bindings style for the AUS map */
+    #ausMap .vega-bindings{
+      display:flex; gap:14px; align-items:center; margin-top:10px;
+      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
+      font-size:14px;
+    }
+    #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
+    #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
+    #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
+
     /* Two-up layout for “Why the commute looks like this” */
-    .two-grid{display:grid; grid-template-columns:minmax(320px,1fr) minmax(320px,1fr); gap:16px; align-items:start}
+    .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
   </style>
@@ -105,43 +92,19 @@
         <div class="pad">
           <h2>Driving to work vs Working from home (2021)</h2>
           <p class="muted">
-            Toggle the metric to colour each state by the proportion of workers who either
-            drove to work or worked from home in 2021. Values are percentages of employed residents.
+            Toggle the metric to colour each state by the proportion of workers who either drove to work or worked from home in 2021. Values are percentages of employed residents.
           </p>
 
           <div class="map-grid map-grid--notes-left">
             <aside class="side-notes">
               <h3>What the map shows</h3>
-              <p>
-                The eastern capitals record the highest shares of people working from home: Sydney ~31% and Melbourne ~26%.
-                These states also show comparatively lower driving rates.
-              </p>
-              <p>
-                Further north and west, driving is more common. Brisbane sits around ~56% driving and Perth about ~63%.
-              </p>
-              <p>
-                South Australia, Tasmania and the Northern Territory also lean toward driving, with more moderate working-from-home shares.
-              </p>
-              <p>
-                Overall in 2021, the commute picture is split between working at home and private vehicle travel. Differences across states align with
-                industry mix, urban form and how jobs and housing are distributed.
-              </p>
+              <p>The east posted the strongest shift to home-based work: Sydney ~31% and Melbourne ~26% worked from home in 2021, pulling down their driving shares.</p>
+              <p>Further north and west the pattern flips. Queensland and Western Australia remained more car-oriented (Brisbane ~56% driving; Perth ~63%).</p>
+              <p>South Australia, Tasmania and the Northern Territory also leaned toward driving, with a more modest take-up of WFH.</p>
+              <p>In short, by 2021 the commute split between staying home and driving, with public transport still below pre-pandemic levels.</p>
             </aside>
 
-            <div>
-              <!-- real UI controls that re-embed the spec -->
-              <div class="metric-ui" id="metricUI">
-                <strong style="font-weight:600; color:#0f172a">Metric:</strong>
-                <label><input type="radio" name="metric" value="driver_pct" checked> Drivers (%)</label>
-                <label><input type="radio" name="metric" value="wfh_pct_2021"> Working from home (%)</label>
-              </div>
-              <div id="ausMap">
-                <div class="muted" style="margin-top:4px">Loading chart…</div>
-              </div>
-              <div class="muted" style="margin-top:6px">
-                Bins shown in legend are percentages of workers.
-              </div>
-            </div>
+            <div id="ausMap"></div>
           </div>
         </div>
       </section>
@@ -153,29 +116,21 @@
 
           <div class="side-notes">
             <h3>Where people work</h3>
-            <p>
-              Regional cities have a much higher share of residents who work in the same local area.
-              Townsville (~92%), Ballarat (~85%) and Launceston (~81%) lead the list, with Cairns also high (~67%).
-              Capital cities sit lower—Sydney (~33%), Melbourne (~31%), Brisbane (~28%) and Adelaide (~27%)—
-              while Darwin (~45%) and Hobart (~42%) sit in the middle. Stronger local job–housing match outside the big metros helps explain the map.
-            </p>
+            <p>Regional cities have a much higher share of residents who work in the same local area. Townsville (~92%), Ballarat (~85%) and Launceston (~81%) lead the list, with Cairns also high (~67%). Capital cities sit lower—Sydney (~33%), Melbourne (~31%), Brisbane (~28%) and Adelaide (~27%)—while Darwin (~45%) and Hobart (~42%) sit in the middle. Stronger local job–housing match outside the big metros helps explain the map.</p>
 
             <h3>How long trips are</h3>
-            <p>
-              The national commute-time curve peaks at 15–25 minutes (each a little over one-fifth of commuters).
-              After ~35 minutes the shares taper steadily; only about one in seven Australians travel 55+ minutes, and very long trips (60+ minutes) are rare.
-            </p>
+            <p>The national commute-time curve peaks at 15–25 minutes (each a little over one-fifth of commuters). After ~35 minutes the shares taper steadily; only about one in seven Australians travel 55+ minutes, and very long trips (60+ minutes) are rare.</p>
           </div>
 
           <div class="two-grid">
             <div>
               <h3 style="margin:8px 0 6px">Share working locally, by city (2021)</h3>
-              <div id="cityLocalWork"><div class="muted">Loading chart…</div></div>
+              <div id="cityLocalWork"></div>
             </div>
 
             <div>
               <h3 style="margin:8px 0 6px">Commute time distribution — Australia (2021)</h3>
-              <div id="nationalCommuteTime"><div class="muted">Loading chart…</div></div>
+              <div id="nationalCommuteTime"></div>
             </div>
           </div>
         </div>
@@ -185,7 +140,7 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-        <div class="controls">
+          <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
@@ -197,25 +152,15 @@
             </label>
           </div>
           <p class="muted">
-            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
-            Story: Inner Melbourne swung from strong train/tram in 2016 to much higher working-from-home and lower public transport in 2021,
-            while outer suburbs remained more car-reliant.
+            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years. Story: Inner Melbourne swung from strong train/tram in 2016 to much higher working-from-home and lower public transport in 2021, while outer suburbs remained more car-reliant.
           </p>
           <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-          <p class="muted" style="margin:6px 0 0">
-            Bins: 0–5%, 6–10%, 11–20%, 21–30%, 31–40%, 41–50%, 51–60%, 61–70%, 71–80%.
-          </p>
+          <p class="muted" style="margin:6px 0 0">Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.</p>
           <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
         <div class="pad">
-          <div class="muted" style="margin-top:8px">
-            <p><strong>WFH surged:</strong> median increase of 36.1 percentage points (mean increase of 35.8). Standouts include Kensington rising by 42.6 points (from 3.7% to 46.4%), East Melbourne by 41.4, Docklands by 41.4, Arden by 41.0, and South Yarra by 40.5.</p>
-            <p><strong>Public transport fell sharply:</strong> median decrease of 28.7 percentage points (mean decrease of 27.4). Largest declines were Kensington down 50.6 points (from 67.4% to 16.8%), Docklands down 38.1, South Yarra down 36.8, Parkville down 32.8, and North Melbourne down 31.5.</p>
-            <p><strong>Active and other modes also declined:</strong> Walking decreased by 14.1 points (median); Tram by 9.5; Car (driver) by 5.8; Train by 5.0; Bicycle by 2.3.</p>
-            <p><strong>Non-attendance edged up:</strong> “Did not go to work” increased by 2.9 points (median).</p>
-            <p><strong>Overall pattern:</strong> mode shares still total roughly 100%, but the composition shifted decisively from on-site and transit travel toward remote work.</p>
-          </div>
+          <p class="muted" style="margin-top:8px">The map shows where change happened: central municipalities gained the most WFH and saw the biggest public-transport drop, whereas middle and outer suburbs kept a stronger car-driver profile.</p>
         </div>
       </section>
 
@@ -225,7 +170,7 @@
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
           <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
-            <div id="slopeChart"><div class="muted">Loading chart…</div></div>
+            <div id="slopeChart"></div>
             <aside class="side-notes">
               <h3>What stands out</h3>
               <p>Car, as driver remained dominant but fell from ~62% (2016) to ~53% (2021).</p>
@@ -240,13 +185,12 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map (re-embed on toggle) ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
-    // Detect the TopoJSON object name once.
     let featureName = "STE_2021_AUST_GDA2020";
     try {
       const res = await fetch(steURL);
@@ -255,81 +199,61 @@
       if (objects.includes("STE_2021_AUST_GDA2020")) featureName = "STE_2021_AUST_GDA2020";
       else if (objects.includes("states")) featureName = "states";
       else if (objects.length) featureName = objects[0];
-    } catch(e) {
-      console.warn("Could not inspect TopoJSON; falling back to", featureName);
-    }
+    } catch(e) {}
 
-    function specFor(metricField){
-      const titleLabel = metricField === "driver_pct" ? "Drivers (%)" : "Working from home (%)";
-      return {
-        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
-        width: "container",
-        height: 420,
-        projection: { type: "equalEarth", rotate: [-134, 0, 0] },
-        layer: [
-          {
-            data: { url: steURL, format: { type: "topojson", feature: featureName } },
-            transform: [
-              { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
-              { lookup: "state_name",
-                from: { data: { url: csvURL }, key: "STE_NAME_2021",
-                        fields: ["driver_pct","wfh_pct_2021"] } },
-              { calculate: `${JSON.stringify(titleLabel)}`, as: "metric_name" },
-              { calculate: metricField === "driver_pct" ? "datum.driver_pct" : "datum.wfh_pct_2021", as: "metric_value" }
-            ],
-            mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.8 },
-            encoding: {
-              color: {
-                condition: {
-                  test: "isValid(datum.metric_value)",
-                  field: "metric_value", type: "quantitative",
-                  title: "Proportion (%)",
-                  scale: { domain: [0, 80], scheme: "blues" },
-                  legend: { format: ".0f" }
-                },
-                value: "#e5e7eb"
+    const ausSpec = {
+      $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+      width: "container",
+      height: 420,
+      projection: { type: "equalEarth", rotate: [-134, 0, 0] },
+      params: [
+        {
+          name: "metricSel",
+          value: "driver_pct",
+          bind: { input: "radio", name: "Metric: ",
+                  options: ["driver_pct","wfh_pct_2021"],
+                  labels: ["Drivers (%)","Working from home (%)"] }
+        }
+      ],
+      layer: [
+        {
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          transform: [
+            { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
+            { lookup: "state_name",
+              from: { data: { url: csvURL }, key: "STE_NAME_2021",
+                      fields: ["driver_pct","wfh_pct_2021"] } },
+            { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
+            { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
+          ],
+          mark: { type: "geoshape", stroke: "#94a3b8", strokeWidth: 0.8 },
+          encoding: {
+            color: {
+              condition: {
+                test: "isValid(datum.metric_value)",
+                field: "metric_value", type: "quantitative",
+                title: "Proportion (%)",
+                scale: { domain: [0, 80], scheme: "blues" },
+                legend: { format: ".0f" }
               },
-              tooltip: [
-                { field: "state_name", title: "State/Territory" },
-                { field: "metric_name", title: "Metric" },
-                { field: "metric_value", title: "Proportion (%)", format: ".1f" }
-              ]
-            }
-          },
-          {
-            data: { url: steURL, format: { type: "topojson", feature: featureName } },
-            mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
+              value: "#e5e7eb"
+            },
+            tooltip: [
+              { field: "state_name", title: "State/Territory" },
+              { field: "metric_name", title: "Metric" },
+              { field: "metric_value", title: "Proportion (%)", format: ".1f" }
+            ]
           }
-        ],
-        config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
-      };
-    }
+        },
+        {
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
+        }
+      ],
+      config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
+    };
 
-    async function renderAus(metric){
-      try{
-        await vegaEmbed("#ausMap", specFor(metric), {actions:false});
-      }catch(err){
-        console.error("Vega-Lite map error:", err);
-        const el = document.getElementById("ausMap");
-        el.innerHTML = "";
-        const warn = document.createElement("div");
-        warn.className = "muted";
-        warn.style.marginTop = "8px";
-        warn.textContent = "Could not load the Australia-wide map. Check the TopoJSON file (object name) and the CSV URL.";
-        el.appendChild(warn);
-      }
-    }
-
-    // Wire up the UI
-    const metricUI = document.getElementById("metricUI");
-    metricUI.addEventListener("change", (e)=>{
-      if(e.target && e.target.name === "metric"){
-        renderAus(e.target.value);
-      }
-    });
-
-    // Initial render
-    renderAus("driver_pct");
+    vegaEmbed("#ausMap", ausSpec, {actions:false}).catch(()=>{});
   })();
   </script>
 
@@ -350,11 +274,12 @@
     function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
-    /* ---- BREAKS (0–5, 6–10, then 10-point bins up to 71–80) ---- */
+    /* Breaks (0–5, 6–10, then 10-pt bins up to 71–80) */
     const thresholds = [5,10,20,30,40,50,60,70];
+    /* Keep the sequential scale but avoid strong greens in mid-bins */
     const colors = [
-      "#ef4444", "#f97316", "#f59e0b", "#84cc16",
-      "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#64748b"
+      "#ef4444", "#f59e0b", "#fbbf24", "#60a5fa",
+      "#3b82f6", "#6366f1", "#4f46e5", "#334155", "#94a3b8"
     ];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
     function labelFor(v){
@@ -370,7 +295,6 @@
       return "71–80%";
     }
 
-    /* Legend */
     const legend = document.getElementById("legend");
     ["0–5%","6–10%","11–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%"]
       .forEach((lab,i) => {
@@ -386,6 +310,7 @@
     const gBase = svg.append("g");
     const gDots = svg.append("g");
     const gLabels = svg.append("g");
+    const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     const [topology, rawDataAll, centroidsAll] = await Promise.all([
       d3.json(topoUrl),
@@ -393,14 +318,8 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
-    /* Drop "(N)" rows */
     const rawData0 = rawDataAll.filter(d => !endsWithN(d.Area));
-
-    /* ---- EXCLUDE rows by mode ---- */
-    const EXCLUDE = new Set([
-      "total","not stated","other","other mode","did not go to work"
-    ]);
-
+    const EXCLUDE = new Set(["total","not stated","other","other mode","did not go to work"]);
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
@@ -432,10 +351,7 @@
       delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
       lon: hasLon ? +d.lon : NaN,
       lat: hasLat ? +d.lat : NaN
-    }));
-
-    /* Apply exclusions (modes) */
-    data = data.filter(d => !EXCLUDE.has(normName(d.mode)));
+    })).filter(d => !EXCLUDE.has(normName(d.mode)));
 
     if (!hasLon || !hasLat) {
       const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
@@ -469,7 +385,6 @@
       const vMax = d3.max(pts.filter(d => d.hasValue), d => d.value) || 10;
       const r = d3.scaleSqrt().domain([0, vMax]).range([2, 10]);
       const nodes = pts.map(d => ({ ...d, x: d.x0, y: d.y0 }));
-
       const sim = d3.forceSimulation(nodes)
         .force("x", d3.forceX(d => d.x0).strength(0.20))
         .force("y", d3.forceY(d => d.y0).strength(0.20))
@@ -477,13 +392,19 @@
         .stop();
       for (let i = 0; i < 120; i++) sim.tick();
 
-      const gDotsSel = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
-      gDotsSel.join(
+      const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
+      circles.join(
         enter => enter.append("circle")
           .attr("cx", d => d.x0).attr("cy", d => d.y0).attr("r", 0)
           .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
-          .attr("fill-opacity", d => d.hasValue ? 0.9 : 0.9)
-          .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.20 : 0.1).attr("stroke-width", 0.8)
+          .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
+          .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
+          .on("mousemove", (e,d) => {
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
+            d3.select(".tooltip").style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
+               .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
+          })
+          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
@@ -493,8 +414,8 @@
         exit => exit.transition().duration(200).attr("r",0).remove()
       );
 
-      const gLabelsSel = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
-      gLabelsSel.join(
+      const labels = gLabels.selectAll("text").data(withLabels ? nodes.filter(d => d.hasValue) : [], d => d.Area + "__" + mode);
+      labels.join(
         enter => enter.append("text")
           .attr("class","label").attr("x", d => d.x + 10).attr("y", d => d.y + 3)
           .style("opacity", 0).text(d => `${d.value.toFixed(0)}%`)
@@ -507,12 +428,32 @@
   })();
   </script>
 
-  <!-- ===== Vega-Lite Slope Chart ===== -->
+  <!-- ===== Vega-Lite Slope Chart (custom colours; “Car, as driver” = grey) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
       const measured = container.clientWidth || container.getBoundingClientRect().width || 900;
       const w = Math.min(560, Math.max(320, measured));
+
+      const domain = [
+        "Worked at home","Car, as driver","Train","Bus","Tram/light rail","Walked only",
+        "Bicycle","Car, as passenger","Taxi/ride-share service","Ferry","Motorbike/scooter","Truck"
+      ];
+      /* Colour-blind–friendly set; no green at all for “Car, as driver” (grey) */
+      const range = [
+        "#E64B35", /* Worked at home - orange/red */
+        "#6B7280", /* Car, as driver - GREY (requested) */
+        "#2F70AF", /* Train - blue */
+        "#1F9FB5", /* Bus - cyan */
+        "#8E6BBE", /* Tram/light rail - purple */
+        "#333333", /* Walked only - dark grey */
+        "#D7827E", /* Bicycle - muted salmon */
+        "#FDB863", /* Car, as passenger - sand */
+        "#80B1D3", /* Taxi/ride-share service - steel blue */
+        "#C49A6C", /* Ferry - brownish */
+        "#A6A6D2", /* Motorbike/scooter - lavender */
+        "#9A9A9A"  /* Truck - mid grey */
+      ];
 
       const slopeSpec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
@@ -535,8 +476,9 @@
           "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
           "color": {
-            "field":"mode","type":"nominal","legend":{"title":"Mode of Transport"},
-            "scale": {"range": ["#d16b6b","#2b7c9b","#a2a6b1","#f0a35e","#b07fb1","#9ec27d","#c97e68","#647aa3","#d3b26f","#4a6fb1"]}
+            "field":"mode","type":"nominal",
+            "scale": {"domain": domain, "range": range},
+            "legend":{"title":"Mode of Transport"}
           },
           "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
           "size": {"condition":{"param":"pick","value":3},"value":2},
@@ -552,14 +494,7 @@
       };
 
       vegaEmbed('#slopeChart', slopeSpec, { actions:false, renderer:'svg' })
-        .catch(err => {
-          console.error('Vega-Lite load error:', err);
-          const warn = document.createElement('div');
-          warn.className = 'muted';
-          warn.style.marginTop = '8px';
-          warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
-          container.appendChild(warn);
-        });
+        .catch(()=>{});
     })();
   </script>
 
@@ -570,7 +505,6 @@
     const urlTime  = "https://khanhl123.github.io/FIT3179-A2/commute_time_distribution_2021.csv";
 
     function showError(where, err){
-      console.error(where, err);
       const el = document.querySelector(where === 'local' ? '#cityLocalWork' : '#nationalCommuteTime');
       const warn = document.createElement('div');
       warn.className = 'muted';
@@ -590,10 +524,7 @@
           mark: { type: "bar", cornerRadiusEnd: 4 },
           encoding: {
             y: { field: "city", type: "nominal", sort: "-x", title: null },
-            x: {
-              field: "pct_work_locally", type: "quantitative",
-              title: "Work locally (%)", scale: { domain: [0, 100] }
-            },
+            x: { field: "pct_work_locally", type: "quantitative", title: "Work locally (%)", scale: { domain: [0, 100] } },
             color: {
               field: "City type", type: "nominal",
               scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
@@ -606,13 +537,8 @@
             ]
           }
         },
-        {
-          mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
-          encoding: {
-            y: { field: "city", type: "nominal", sort: "-x" },
-            x: { field: "pct_work_locally", type: "quantitative" },
-            text: { field: "pct_work_locally", type: "quantitative", format: ".1f" }
-          }
+        { mark: { type: "text", align: "left", baseline: "middle", dx: 4, fontSize: 11, color: "#0f172a" },
+          encoding: { y: { field: "city", type: "nominal", sort: "-x" }, x: { field: "pct_work_locally", type: "quantitative" }, text: { field: "pct_work_locally", type: "quantitative", format: ".1f" } }
         }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
