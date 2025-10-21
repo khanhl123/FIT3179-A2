@@ -14,27 +14,24 @@
     html, body { height: 100%; }
     body{
       margin:0;
-      background:#e8f1ff; /* 🔵 changed from #f7f9fc to a soft blue */
-      color:#0f172a;
+      background:#0b1f3b; /* 🔵 dark blue background */
+      color:#0f172a;      /* body text (used inside white cards) */
       font-family:var(--font-stack);
       font-size:var(--base-size);
       line-height:var(--lh);
     }
 
-    /* Headings: allowed to differ in size */
-    header{padding:28px 20px;text-align:center;}
-    h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
-    .subtitle{margin-top:6px;color:#64748b;font-size:clamp(14px,1.4vw,16px)}
-
-    /* All other text uses body size by default */
-    .intro{max-width:900px;margin:10px auto 0;color:#334155}
-    p, li, label, button, select, input, .side-notes, .legend, .vega-embed, #ausMap .vega-bindings {
-      font-size:inherit;
-      line-height:inherit;
+    /* Header sits on dark bg, so make it light for contrast */
+    header{
+      padding:28px 20px;
+      text-align:center;
+      color:#e8eefb; /* light text */
     }
-    strong, b { font-weight:600; font-size:inherit; }
+    h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
+    .subtitle{margin-top:6px;color:#c7d7ff;font-size:clamp(14px,1.4vw,16px)}
+    .intro{max-width:900px;margin:10px auto 0;color:#d9e3ff}
 
-    /* Layout & cards */
+    /* Layout & cards (unchanged) */
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
     .grid{display:grid;grid-template-columns:1fr;gap:20px}
     .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
@@ -42,7 +39,6 @@
     .card h2{font-size:clamp(22px,2.2vw,26px);margin:0 0 12px}
 
     .muted{color:#64748b}
-
     .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
@@ -179,7 +175,7 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-        <div class="controls">
+          <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
@@ -214,7 +210,7 @@
       <section class="card">
         <div class="pad">
           <h2>Shift in Transportation Modes (2016 → 2021)</h2>
-          <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
+        <p class="muted">Click a mode (legend or line) to highlight it. Others will dim. Double-click anywhere to reset.</p>
           <div class="slope-grid">
             <div id="slopeChart"></div>
             <aside class="side-notes">
@@ -362,7 +358,6 @@
     const gBase = svg.append("g");
     const gDots = svg.append("g");
     const gLabels = svg.append("g");
-    const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     const [topology, rawDataAll, centroidsAll] = await Promise.all([
       d3.json(topoUrl),
@@ -371,11 +366,7 @@
     ]);
 
     const rawData0 = rawDataAll.filter(d => !endsWithN(d.Area));
-
-    const EXCLUDE = new Set([
-      "total","not stated","other","other mode","did not go to work"
-    ]);
-
+    const EXCLUDE = new Set(["total","not stated","other","other mode","did not go to work"]);
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
@@ -407,9 +398,7 @@
       delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
       lon: hasLon ? +d.lon : NaN,
       lat: hasLat ? +d.lat : NaN
-    }));
-
-    data = data.filter(d => !EXCLUDE.has(normName(d.mode)));
+    })).filter(d => !EXCLUDE.has(normName(d.mode)));
 
     if (!hasLon || !hasLat) {
       const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
@@ -417,9 +406,9 @@
       document.getElementById("joinNote").style.display = "block";
     }
 
-    const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
-    modes.forEach(m => modeSel.appendChild(new Option(m, m)));
+    Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b))
+      .forEach(m => modeSel.appendChild(new Option(m, m)));
 
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
@@ -450,6 +439,9 @@
         .stop();
       for (let i = 0; i < 120; i++) sim.tick();
 
+      const gDots = d3.select("#mapBox svg").selectAll("g").filter((d,i)=>i===1);
+      const gLabels = d3.select("#mapBox svg").selectAll("g").filter((d,i)=>i===2);
+
       const circles = gDots.selectAll("circle").data(nodes, d => d.Area + "__" + mode);
       circles.join(
         enter => enter.append("circle")
@@ -457,12 +449,6 @@
           .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
           .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
           .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
-          .on("mousemove", (e,d) => {
-            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
-            d3.select(".tooltip").style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
-               .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
-          })
-          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
