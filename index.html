@@ -5,47 +5,19 @@
   <title>How Australians got to work?</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    :root{
-      --font-stack: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      --base-size: 16px;
-      --lh: 1.6;
-    }
-    html, body { height: 100%; }
-    body{
-      margin:0;
-      background:#0b1f3b; /* dark blue */
-      color:#0f172a;
-      font-family:var(--font-stack);
-      font-size:var(--base-size);
-      line-height:var(--lh);
-    }
-
-    /* Headings stay bold */
-    h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em;font-weight:800}
-    h2{font-size:clamp(22px,2.2vw,26px);margin:0 0 12px;font-weight:700}
-    h3{font-size:clamp(18px,1.9vw,20px);margin:0 0 8px;font-weight:700}
-
-    /* Make all body <strong> normal weight (does not affect headings) */
-    strong{ font-weight:400; }
-
-    header{
-      padding:28px 20px;
-      text-align:center;
-      color:#e8eefb;
-    }
-    .subtitle{margin-top:6px;color:#c7d7ff;font-size:clamp(14px,1.4vw,16px)}
-    .intro{max-width:900px;margin:10px auto 0;color:#d9e3ff}
-
+    body{margin:0;background:#f7f9fc;color:#0f172a;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+    header{padding:28px 20px;text-align:center;}
+    h1{margin:0;font-size:clamp(28px,3.5vw,44px);letter-spacing:-0.02em}
+    .subtitle{margin-top:6px;color:#64748b;font-size:14px}
+    .intro{max-width:900px;margin:10px auto 0;color:#334155;line-height:1.55;font-size:15px}
     .wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
     .grid{display:grid;grid-template-columns:1fr;gap:20px}
-    .card{
-      background:#fff;border:1px solid #e5e7eb;border-radius:8px;
-      box-shadow:0 4px 18px rgba(15,23,42,.06)
-    }
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 4px 18px rgba(15,23,42,.06)}
     .pad{padding:18px}
-    .muted{color:#64748b}
+    .card h2{font-size:20px;margin:0 0 12px}
+    .muted{color:#64748b;font-size:12px}
     .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
-    .sw{width:14px;height:14px;border-radius:2px;border:1px solid #e2e8f0;display:inline-block}
+    .sw{width:14px;height:14px;border-radius:3px;border:1px solid #e2e8f0;display:inline-block}
 
     /* Greater Melbourne map */
     #mapBox{height:620px; position:relative;}
@@ -53,34 +25,34 @@
     select,button,label{font:inherit}
     .btn{padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
     .btn.active{background:#0f172a;color:#fff;border-color:#0f172a}
-    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
-    .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:6px;display:none}
+    .tooltip{position:absolute;pointer-events:none;background:#111827;color:#fff;padding:8px 10px;border-radius:10px;font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+    .banner{margin-top:8px;color:#b45309;background:#fff7ed;border:1px solid #fde68a;padding:8px 10px;border-radius:8px;display:none}
     svg{display:block;width:100%;height:100%}
     .label{font-size:10px;fill:#111827;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
     @media (max-width: 960px){ .grid{grid-template-columns:1fr} #mapBox{height:520px} }
     #slopeChart{min-height:420px;}
-    .vega-embed{background:#fff;border-radius:8px;}
+    .vega-embed{background:#fff;border-radius:16px;}
 
     /* Two-column layout cards */
     .slope-grid{display:grid;grid-template-columns:minmax(320px,1fr) 360px;gap:16px;align-items:start}
     .map-grid{display:grid;gap:16px;align-items:start}
     .map-grid--notes-left{grid-template-columns:360px minmax(420px,1fr);}
-    .side-notes{
-      background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;
-      padding:12px 14px;color:#334155
-    }
+    .side-notes{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;color:#334155;font-size:14px;line-height:1.48}
+    .side-notes h3{margin:0 0 8px;font-size:16px;color:#0f172a}
     .side-notes p{margin:0 0 10px}
     @media (max-width: 900px){ .slope-grid,.map-grid{grid-template-columns:1fr} }
 
     /* Vega-Lite radio bindings style for the AUS map */
     #ausMap .vega-bindings{
       display:flex; gap:14px; align-items:center; margin-top:10px;
-      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; width:max-content;
+      padding:8px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:10px; width:max-content;
+      font-size:14px;
     }
     #ausMap .vega-bind-name{ font-weight:600; color:#0f172a; margin-right:4px; }
     #ausMap .vega-bindings label{ margin-right:10px; cursor:pointer; }
     #ausMap .vega-bindings input[type="radio"]{ transform:scale(1.1); accent-color:#0f172a; cursor:pointer; }
 
+    /* Two-up layout for “Why the commute looks like this” */
     .two-grid{display:grid;grid-template-columns:minmax(320px,1fr) minmax(320px,1fr);gap:16px;align-items:start}
     @media (max-width: 900px){ .two-grid{grid-template-columns:1fr} }
     #cityLocalWork, #nationalCommuteTime{min-height:260px}
@@ -182,24 +154,26 @@
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
         <div class="controls">
-          <label>Mode:</label>
-          <select id="modeSel"></select>
-          <span style="margin-left:8px">Year:</span>
-          <button class="btn" data-year="2016" id="y2016">2016</button>
-          <button class="btn active" data-year="2021" id="y2021">2021</button>
-          <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="showLabels" />
-            Labels
-          </label>
-        </div>
-        <p class="muted">
-          Explain the map: Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
-          <strong>Story:</strong> Inner Melbourne swung from strong train/tram in 2016 to much higher <strong>working-from-home</strong> and lower public transport in 2021,
-          while outer suburbs remained more car-reliant.
-        </p>
-        <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
-        <p class="muted" style="margin:6px 0 0">Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.</p>
-        <div class="legend" id="legend"></div>
+            <label>Mode:</label>
+            <select id="modeSel"></select>
+            <span style="margin-left:8px">Year:</span>
+            <button class="btn" data-year="2016" id="y2016">2016</button>
+            <button class="btn active" data-year="2021" id="y2021">2021</button>
+            <label style="margin-left:12px; display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="showLabels" />
+              Labels
+            </label>
+          </div>
+          <div class="muted">
+            Dot size = share (%). Colour shows the percentage band. Use the controls to compare modes and years.
+            <strong>Story:</strong> Inner Melbourne swung from strong train/tram in 2016 to much higher <strong>working-from-home</strong> and lower public transport in 2021,
+            while outer suburbs remained more car-reliant.
+          </div>
+          <div class="banner" id="joinNote">Note: lat/lon were joined from <code>lga_centroids.csv</code> (the data file had no coordinates).</div>
+          <p class="muted" style="margin:6px 0 0">
+            Note: finer colour bins are used under 10% (0–5, 6–10), then 10-point steps.
+          </p>
+          <div class="legend" id="legend"></div>
         </div>
         <div id="mapBox"></div>
         <div class="pad">
@@ -231,12 +205,13 @@
     </div>
   </div>
 
-  <!-- ===== Australia-wide Vega-Lite Map ===== -->
+  <!-- ===== Australia-wide Vega-Lite Map (auto-detect TopoJSON feature; re-centered Equal Earth) ===== -->
   <script>
   (async function(){
     const csvURL  = "https://khanhl123.github.io/FIT3179-A2/gccsa_capitals_wfh_drivers_2021.csv";
     const steURL  = "https://khanhl123.github.io/FIT3179-A2/ste_2021.json";
 
+    // Try to detect the correct TopoJSON object name to avoid blank maps.
     let featureName = "STE_2021_AUST_GDA2020";
     try {
       const res = await fetch(steURL);
@@ -245,7 +220,9 @@
       if (objects.includes("STE_2021_AUST_GDA2020")) featureName = "STE_2021_AUST_GDA2020";
       else if (objects.includes("states")) featureName = "states";
       else if (objects.length) featureName = objects[0];
-    } catch(e) { console.warn("Could not inspect TopoJSON; falling back to", featureName); }
+    } catch(e) {
+      console.warn("Could not inspect TopoJSON; falling back to", featureName);
+    }
 
     const ausSpec = {
       $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -253,18 +230,22 @@
       height: 420,
       projection: { type: "equalEarth", rotate: [-134, 0, 0] },
       params: [
-        { name: "metricSel", value: "driver_pct",
+        {
+          name: "metricSel",
+          value: "driver_pct",
           bind: { input: "radio", name: "Metric: ",
                   options: ["driver_pct","wfh_pct_2021"],
-                  labels: ["Drivers (%)","Working from home (%)"] } }
+                  labels: ["Drivers (%)","Working from home (%)"] }
+        }
       ],
       layer: [
         {
           data: { url: steURL, format: { type: "topojson", feature: featureName } },
           transform: [
             { calculate: "(datum.properties && (datum.properties['STE_NAME_2021'] || datum.properties['STE_NAME21'] || datum.properties['STATE_NAME']))", as: "state_name" },
-            { lookup: "state_name", from: { data: { url: csvURL }, key: "STE_NAME_2021",
-              fields: ["driver_pct","wfh_pct_2021"] } },
+            { lookup: "state_name",
+              from: { data: { url: csvURL }, key: "STE_NAME_2021",
+                      fields: ["driver_pct","wfh_pct_2021"] } },
             { calculate: "metricSel === 'driver_pct' ? 'Drivers (%)' : 'WFH (%)'", as: "metric_name" },
             { calculate: "metricSel === 'driver_pct' ? datum.driver_pct : datum.wfh_pct_2021", as: "metric_value" }
           ],
@@ -287,8 +268,10 @@
             ]
           }
         },
-        { data: { url: steURL, format: { type: "topojson", feature: featureName } },
-          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 } }
+        {
+          data: { url: steURL, format: { type: "topojson", feature: featureName } },
+          mark: { type: "geoshape", fill: null, stroke: "#334155", strokeWidth: 0.9 }
+        }
       ],
       config: { view: { stroke: null }, axis: { labelFontSize: 12, titleFontSize: 13 } }
     };
@@ -305,7 +288,7 @@
   })();
   </script>
 
-  <!-- ===== Greater Melbourne D3 Map ===== -->
+  <!-- ===== Greater Melbourne D3 Map (0–5, 6–10, then 10-pt bins) ===== -->
   <script>
   (async function () {
     const topoUrl = "LGA_2021_AUST_GDA2020.json";
@@ -322,8 +305,12 @@
     function toNum(x){ if (x == null) return NaN; const s = String(x).replace(/,/g,"").replace(/%/g,"").trim(); const v = +s; return Number.isFinite(v) ? v : NaN; }
     const endsWithN = a => /\(\s*N\s*\)\s*$/i.test(String(a||"").trim());
 
+    /* ---- BREAKS (0–5, 6–10, then 10-point bins up to 71–80) ---- */
     const thresholds = [5,10,20,30,40,50,60,70];
-    const colors = ["#ef4444","#f97316","#f59e0b","#84cc16","#22c55e","#06b6d4","#3b82f6","#6366f1","#64748b"];
+    const colors = [
+      "#ef4444", "#f97316", "#f59e0b", "#84cc16",
+      "#22c55e", "#06b6d4", "#3b82f6", "#6366f1", "#64748b"
+    ];
     const colorScale = d3.scaleThreshold().domain(thresholds).range(colors);
     function labelFor(v){
       if (!Number.isFinite(v)) return "No data";
@@ -338,12 +325,13 @@
       return "71–80%";
     }
 
+    /* Legend */
     const legend = document.getElementById("legend");
     ["0–5%","6–10%","11–20%","21–30%","31–40%","41–50%","51–60%","61–70%","71–80%"]
       .forEach((lab,i) => {
         const el = document.createElement("div");
         el.innerHTML = `<span class="sw" style="background:${colors[i]}"></span>
-                        <span style="color:#475569">${lab}</span>`;
+                        <span style="font-size:12px;color:#475569">${lab}</span>`;
         legend.appendChild(el);
       });
 
@@ -353,6 +341,7 @@
     const gBase = svg.append("g");
     const gDots = svg.append("g");
     const gLabels = svg.append("g");
+    const tip = d3.select("body").append("div").attr("class","tooltip").style("opacity",0);
 
     const [topology, rawDataAll, centroidsAll] = await Promise.all([
       d3.json(topoUrl),
@@ -360,8 +349,14 @@
       d3.csv(centUrl, d3.autoType)
     ]);
 
+    /* Drop "(N)" rows */
     const rawData0 = rawDataAll.filter(d => !endsWithN(d.Area));
-    const EXCLUDE = new Set(["total","not stated","other","other mode","did not go to work"]);
+
+    /* ---- EXCLUDE rows by mode ---- */
+    const EXCLUDE = new Set([
+      "total","not stated","other","other mode","did not go to work"
+    ]);
+
     const centroids = centroidsAll.filter(d => !endsWithN(d.Area));
 
     const objName = (topology.objects && topology.objects.LGA_2021_AUST_GDA2020)
@@ -376,8 +371,10 @@
 
     const projection = d3.geoMercator().fitSize([width,height], melb);
     const path = d3.geoPath(projection);
-    gBase.append("g").selectAll("path").data(melb.features).join("path")
-      .attr("d", path).attr("fill", "#eef2ff").attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
+    gBase.append("g")
+      .selectAll("path").data(melb.features).join("path")
+      .attr("d", path).attr("fill", "#eef2ff")
+      .attr("stroke", "#94a3b8").attr("stroke-width", 0.6);
 
     const hasLon = rawData0.length && ("lon" in rawData0[0]);
     const hasLat = rawData0.length && ("lat" in rawData0[0]);
@@ -391,7 +388,10 @@
       delta_pp: toNum(d.delta_pp ?? (toNum(d["2021%"])-toNum(d["2016%"]))),
       lon: hasLon ? +d.lon : NaN,
       lat: hasLat ? +d.lat : NaN
-    })).filter(d => !EXCLUDE.has(normName(d.mode)));
+    }));
+
+    /* Apply exclusions (modes) */
+    data = data.filter(d => !EXCLUDE.has(normName(d.mode)));
 
     if (!hasLon || !hasLat) {
       const centByArea = new Map(centroids.map(c => [normName(c.Area), {lon:+c.lon, lat:+c.lat}]));
@@ -399,9 +399,9 @@
       document.getElementById("joinNote").style.display = "block";
     }
 
+    const modes = Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
     const modeSel = document.getElementById("modeSel");
-    Array.from(new Set(data.map(d => d.mode))).filter(Boolean).sort((a,b)=>a.localeCompare(b))
-      .forEach(m => modeSel.appendChild(new Option(m, m)));
+    modes.forEach(m => modeSel.appendChild(new Option(m, m)));
 
     const y2016 = document.getElementById("y2016");
     const y2021 = document.getElementById("y2021");
@@ -439,6 +439,12 @@
           .attr("fill", d => Number.isFinite(d.value) ? colorScale(d.value) : "#cbd5e1")
           .attr("fill-opacity", d => d.hasValue ? 0.85 : 0.9)
           .attr("stroke", "#0f172a").attr("stroke-opacity", d => d.hasValue ? 0.25 : 0.1).attr("stroke-width", 0.8)
+          .on("mousemove", (e,d) => {
+            const txt = d.hasValue ? `${d.mode} ${d.year}: ${d.value.toFixed(1)}% (${labelFor(d.value)})` : `No data for ${d.mode} ${d.year}`;
+            d3.select(".tooltip").style("opacity",1).html(`<strong>${d.Area}</strong><br>${txt}`)
+               .style("left",(e.pageX+12)+"px").style("top",(e.pageY-28)+"px");
+          })
+          .on("mouseleave", () => d3.select(".tooltip").style("opacity",0))
           .transition().duration(400)
           .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => r(d.hasValue ? d.value : 0.1)),
         update => update.transition().duration(300)
@@ -462,7 +468,7 @@
   })();
   </script>
 
-  <!-- ===== Slope Chart ===== -->
+  <!-- ===== Vega-Lite Slope Chart (now with explicit distinct colours) ===== -->
   <script>
     (function(){
       const container = document.getElementById('slopeChart');
@@ -482,12 +488,47 @@
           {"calculate": "datum.fold_key === 'prop_2016_pct' ? '2016' : '2021'", "as": "Year"},
           {"calculate": "toNumber(datum.Proportion)", "as": "Proportion"}
         ],
-        "params": [{"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}],
+        "params": [
+          {"name": "pick","select": {"type": "point", "fields": ["mode"], "on": "click", "clear": "dblclick"},"bind": "legend","empty": "all"}
+        ],
         "mark": {"type":"line","point":true},
         "encoding": {
           "x": {"field":"Year","type":"ordinal","sort":["2016","2021"],"scale":{"padding":0.1},"axis":{"title":"Year"}},
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
-          "color": {"field":"mode","type":"nominal","legend":{"title":"Mode of Transport"}},
+          "color": {
+            "field":"mode","type":"nominal",
+            "scale": {
+              "domain": [
+                "Worked at home",
+                "Car, as driver",
+                "Train",
+                "Bus",
+                "Tram/light rail",
+                "Walked only",
+                "Bicycle",
+                "Car, as passenger",
+                "Taxi/ride-share service",
+                "Ferry",
+                "Motorbike/scooter",
+                "Truck"
+              ],
+              "range": [
+                "#D55E00", /* Worked at home – vermillion */
+                "#0072B2", /* Car, as driver – blue */
+                "#56B4E9", /* Train – sky blue */
+                "#009E73", /* Bus – green */
+                "#CC79A7", /* Tram – magenta */
+                "#999999", /* Walked only – grey */
+                "#E69F00", /* Bicycle – orange */
+                "#A3A500", /* Car, as passenger – olive */
+                "#9467BD", /* Taxi/ride-share – purple */
+                "#66C2A5", /* Ferry – teal */
+                "#F564E3", /* Motorbike/scooter – pink */
+                "#8C564B"  /* Truck – brown */
+              ]
+            },
+            "legend":{"title":"Mode of Transport"}
+          },
           "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
           "size": {"condition":{"param":"pick","value":3},"value":2},
           "tooltip": [
@@ -505,8 +546,8 @@
         .catch(err => {
           console.error('Vega-Lite load error:', err);
           const warn = document.createElement('div');
-          warn.className = 'muted';
-          warn.style.marginTop = '8px';
+          warn.className = 'banner';
+          warn.style.display = 'block';
           warn.textContent = 'Could not load the slope chart. Check the CSV URL/headers.';
           container.appendChild(warn);
         });
@@ -540,8 +581,15 @@
           mark: { type: "bar", cornerRadiusEnd: 4 },
           encoding: {
             y: { field: "city", type: "nominal", sort: "-x", title: null },
-            x: { field: "pct_work_locally", type: "quantitative", title: "Work locally (%)", scale: { domain: [0, 100] } },
-            color: { field: "City type", type: "nominal", scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] }, legend: { title: "City type" } },
+            x: {
+              field: "pct_work_locally", type: "quantitative",
+              title: "Work locally (%)", scale: { domain: [0, 100] }
+            },
+            color: {
+              field: "City type", type: "nominal",
+              scale: { domain: ["Capital","Regional"], range: ["#0ea5e9","#f59e0b"] },
+              legend: { title: "City type" }
+            },
             tooltip: [
               { field: "city", title: "City" },
               { field: "City type" },
