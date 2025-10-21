@@ -173,7 +173,7 @@
       <section class="card">
         <div class="pad">
           <h2>Greater Melbourne — Dot map by mode &amp; year</h2>
-        <div class="controls">
+          <div class="controls">
             <label>Mode:</label>
             <select id="modeSel"></select>
             <span style="margin-left:8px">Year:</span>
@@ -197,13 +197,10 @@
         </div>
         <div id="mapBox"></div>
         <div class="pad">
-          <div class="muted" style="margin-top:8px">
-            <p><strong>WFH surged:</strong> median increase of 36.1 percentage points (mean increase of 35.8). Standouts include Kensington rising by 42.6 points (from 3.7% to 46.4%), East Melbourne by 41.4, Docklands by 41.4, Arden by 41.0, and South Yarra by 40.5.</p>
-            <p><strong>Public transport fell sharply:</strong> median decrease of 28.7 percentage points (mean decrease of 27.4). Largest declines were Kensington down 50.6 points (from 67.4% to 16.8%), Docklands down 38.1, South Yarra down 36.8, Parkville down 32.8, and North Melbourne down 31.5.</p>
-            <p><strong>Active and other modes also declined:</strong> Walking decreased by 14.1 points (median); Tram by 9.5; Car (driver) by 5.8; Train by 5.0; Bicycle by 2.3.</p>
-            <p><strong>Non-attendance edged up:</strong> “Did not go to work” increased by 2.9 points (median).</p>
-            <p><strong>Overall pattern:</strong> mode shares still total roughly 100%, but the composition shifted decisively from on-site and transit travel toward remote work.</p>
-          </div>
+          <p class="muted" style="margin-top:8px">
+            The map shows where change happened: central municipalities gained the most WFH and saw the biggest public-transport drop,
+            whereas middle and outer suburbs kept a stronger car-driver profile.
+          </p>
         </div>
       </section>
 
@@ -514,6 +511,7 @@
           "y": {"field":"Proportion","type":"quantitative","scale":{"domain":[0,70]},"axis":{"title":"Proportion (%)","values":[0,10,20,30,40,50,60,70]}},
           "color": {
             "field":"mode","type":"nominal","legend":{"title":"Mode of Transport"},
+            /* color-blind-safe palette w/ unique hues (no red-green pair) */
             "scale": {"range": ["#d16b6b","#2b7c9b","#a2a6b1","#f0a35e","#b07fb1","#9ec27d","#c97e68","#647aa3","#d3b26f","#4a6fb1"]}
           },
           "opacity": {"condition":{"param":"pick","value":1},"value":0.15},
